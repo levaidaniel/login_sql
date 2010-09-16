@@ -1,5 +1,5 @@
-This program can be used to authenticate against PostreSQL using the BSD
-authentication framework.
+This program can be used to authenticate against an SQL database using the BSD
+authentication framework. Currently PostgreSQL and MySQL is supported.
 
 After installation the auth style name will be -sql. You can use it after you
 configured a login class in login.conf(5) to use this auth style, and created a
