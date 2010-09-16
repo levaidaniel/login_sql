@@ -21,10 +21,10 @@
 .Dt LOGIN_PGSQL 8
 .Os
 .Sh NAME
-.Nm login_pgsql
+.Nm login_sql
 .Nd provides PostgreSQL authentication
 .Sh SYNOPSIS
-.Nm login_pgsql
+.Nm login_sql
 .Op Fl s Ar service
 .Op Fl v Ar name=value
 .Ar user
@@ -55,12 +55,12 @@ utility uses only the following
 .Em optional
 .Xr login.conf 5
 variable:
-.Bl -tag -width x-pgsql-cfg_file
-.It x-pgsql-cfg_file
+.Bl -tag -width x-sql-cfg_file
+.It x-sql-cfg_file
 The config file which contains the information to connect to the PostgreSQL database.
-If you omit this variable, the default config file will be used, which is /etc/login_pgsql.conf.
+If you omit this variable, the default config file will be used, which is /etc/login_sql.conf.
 It must contain the following variables:
-.Bl -tag -width x-pgsql-cfg_file
+.Bl -tag -width x-sql-cfg_file
 .It Em dbname Er "The database name".
 .It Em dbuser Er "The username used to authenticate to the database".
 .It Em dbpass Er "The password used to authenticate to the database".

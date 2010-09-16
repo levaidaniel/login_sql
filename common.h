@@ -4,8 +4,8 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "pgsql_check.h"
+#include "sql_check.h"
 
-#define		VERSION			"0.9"
+#define		LOGIN_SQL_VERSION	"0.9"
 
 #define		MAX_PG_PARAM		32

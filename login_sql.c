@@ -32,7 +32,7 @@
 #include <unistd.h>
 
 #include "common.h"
-#include "login_pgsql.h"
+#include "login_sql.h"
 
 
 char	*config_file = NULL;
@@ -47,7 +47,7 @@ login_cap_t	*lc = NULL;
 FILE		*back = NULL;
 int		mode = 0, c, count = 0;
 char		response[MAX_PG_PARAM];
-int		pgsql_check_ret = EXIT_FAILURE;
+int		sql_check_ret = EXIT_FAILURE;
 char		*class = NULL, *username = NULL, *password = NULL;
 
 
@@ -57,9 +57,9 @@ char		*class = NULL, *username = NULL, *password = NULL;
 
 	(void)setpriority(PRIO_PROCESS, 0, 0);
 
-	openlog("login_pgsql", LOG_ODELAY, LOG_AUTH);
+	openlog("login_sql", LOG_ODELAY, LOG_AUTH);
 
-	while ((c = getopt(argc, argv, "v:s:")) != -1) {
+	while ((c = getopt(argc, argv, "v:s:d")) != -1) {
 		switch (c) {
 		case 'v':
 			break;
@@ -74,6 +74,9 @@ char		*class = NULL, *username = NULL, *password = NULL;
 				syslog(LOG_ERR, "%s: invalid service", optarg);
 				exit(AUTH_FAILED);
 			}
+			break;
+		case 'd':
+			back = stdout;
 			break;
 		default:
 			syslog(LOG_ERR, "usage error1");
@@ -133,18 +136,22 @@ char		*class = NULL, *username = NULL, *password = NULL;
 
 	/* if defined in login.conf(5), get the config file's path */
 	lc = login_getclass(class);
+	if (!lc) {
+		syslog(LOG_ERR, "unknown class: %s\n", class);
+		return(AUTH_FAILED);
+	}
 	config_file = login_getcapstr(lc, CAP_CONFIG_FILE, NULL, NULL);
 	login_close(lc);
 
 	/* check against postgresql */
-	pgsql_check_ret = pgsql_check(username, password);
-	if (pgsql_check_ret == EXIT_SUCCESS) {
+	sql_check_ret = sql_check(username, password);
+	if (sql_check_ret == EXIT_SUCCESS) {
 		fprintf(back, BI_AUTH "\n");
 		syslog(LOG_NOTICE, "authorize ok for %s\n", username);
 		closelog();
 
 		exit(AUTH_OK);
-	} else if (pgsql_check_ret == EXIT_FAILURE) {
+	} else if (sql_check_ret == EXIT_FAILURE) {
 		fprintf(back, BI_REJECT "\n");
 		syslog(LOG_NOTICE, "authorize fail for %s\n", username);
 		closelog();

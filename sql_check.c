@@ -22,9 +22,11 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                                                                            
 */
 
-#include <sys/param.h>
-
+#ifdef PGSQL_BACKEND
 #include <libpq-fe.h>
+#elif MYSQL_BACKEND
+#include <mysql.h>
+#endif
 
 #include "common.h"
 
@@ -34,31 +36,19 @@
 
 extern char	*config_file;
 
+/* common variables for the ?sql_check functions */
+char		sql_dbname[MAX_PG_PARAM] = "", sql_dbuser[MAX_PG_PARAM] = "", sql_dbpass[MAX_PG_PARAM] = "",
+		sql_user_col[MAX_PG_PARAM] = "", sql_pass_col[MAX_PG_PARAM] = "", sql_table[MAX_PG_PARAM] = "";
+char		password[MAX_PASSWORD] = "";
 
-int
-pgsql_check(const char *got_username, const char *got_password)
+
+int sql_check(const char *got_username, const char *got_password)
 {
 FILE		*cfg_file_stream = NULL;
-char		cfg_input_str[64];
+char		cfg_input_str[MAX_CFG_LINE];
 int		cfg_file_error = 0;
 
-PGconn		*pg_conn = NULL;
-char		pg_conninfo[MAX_PG_QUERY_CMD] = "";
-
-PGresult	*pg_result = NULL;
-ExecStatusType	pg_result_status = 0;
-
-int		pg_num_rows = 0;
-
-char		pg_dbname[MAX_PG_PARAM] = "", pg_dbuser[MAX_PG_PARAM] = "", pg_dbpass[MAX_PG_PARAM] = "",
-		pg_user_col[MAX_PG_PARAM] = "", pg_pass_col[MAX_PG_PARAM] = "", pg_table[MAX_PG_PARAM] = "",
-		digest_alg[MAX_PG_PARAM] = "";
-char		*pg_user_col_escaped = NULL, *pg_pass_col_escaped = NULL, *pg_table_escaped = NULL;
-const char	*pg_query_tpl = "SELECT %s FROM %s WHERE %s = '%s';";
-char		pg_query_cmd[MAX_PG_QUERY_CMD] = "";
-
-char		username[EVP_MAX_MD_SIZE * 2 + 1] = "", password[EVP_MAX_MD_SIZE * 2 + 1] = "";
-char		*username_escaped = NULL;
+char		digest_alg[MAX_PG_PARAM] = "";
 
 /* OpenSSL stuff for the message digest algorithms */
 EVP_MD_CTX      mdctx;
@@ -84,39 +74,39 @@ int             i = 0, md_len = 0;
 		cfg_file_error = errno;
 
 		if (strncmp(cfg_input_str, "dbname=", strlen("dbname=")) == 0) {
-			strlcpy(pg_dbname, cfg_input_str + strlen("dbname="), MAX_PG_PARAM);
-			if (pg_dbname[strlen(pg_dbname) - 1] == '\n') {	/* strip the newline */
-				pg_dbname[strlen(pg_dbname) - 1] = '\0';
+			strlcpy(sql_dbname, cfg_input_str + strlen("dbname="), MAX_PG_PARAM);
+			if (sql_dbname[strlen(sql_dbname) - 1] == '\n') {	/* strip the newline */
+				sql_dbname[strlen(sql_dbname) - 1] = '\0';
 			}
 		}
 		if (strncmp(cfg_input_str, "dbuser=", strlen("dbuser=")) == 0) {
-			strlcpy(pg_dbuser, cfg_input_str + strlen("dbuser="), MAX_PG_PARAM);
-			if (pg_dbuser[strlen(pg_dbuser) - 1] == '\n') {	/* strip the newline */
-				pg_dbuser[strlen(pg_dbuser) - 1] = '\0';
+			strlcpy(sql_dbuser, cfg_input_str + strlen("dbuser="), MAX_PG_PARAM);
+			if (sql_dbuser[strlen(sql_dbuser) - 1] == '\n') {	/* strip the newline */
+				sql_dbuser[strlen(sql_dbuser) - 1] = '\0';
 			}
 		}
 		if (strncmp(cfg_input_str, "dbpass=", strlen("dbpass=")) == 0) {
-			strlcpy(pg_dbpass, cfg_input_str + strlen("dbpass="), MAX_PG_PARAM);
-			if (pg_dbpass[strlen(pg_dbpass) - 1] == '\n') {	/* strip the newline */
-				pg_dbpass[strlen(pg_dbpass) - 1] = '\0';
+			strlcpy(sql_dbpass, cfg_input_str + strlen("dbpass="), MAX_PG_PARAM);
+			if (sql_dbpass[strlen(sql_dbpass) - 1] == '\n') {	/* strip the newline */
+				sql_dbpass[strlen(sql_dbpass) - 1] = '\0';
 			}
 		}
 		if (strncmp(cfg_input_str, "table=", strlen("table=")) == 0) {
-			strlcpy(pg_table, cfg_input_str + strlen("table="), MAX_PG_PARAM);
-			if (pg_table[strlen(pg_table) - 1] == '\n') {	/* strip the newline */
-				pg_table[strlen(pg_table) - 1] = '\0';
+			strlcpy(sql_table, cfg_input_str + strlen("table="), MAX_PG_PARAM);
+			if (sql_table[strlen(sql_table) - 1] == '\n') {		/* strip the newline */
+				sql_table[strlen(sql_table) - 1] = '\0';
 			}
 		}
 		if (strncmp(cfg_input_str, "user_col=", strlen("user_col=")) == 0) {
-			strlcpy(pg_user_col, cfg_input_str + strlen("user_col="), MAX_PG_PARAM);
-			if (pg_user_col[strlen(pg_user_col) - 1] == '\n') {	/* strip the newline */
-				pg_user_col[strlen(pg_user_col) - 1] = '\0';
+			strlcpy(sql_user_col, cfg_input_str + strlen("user_col="), MAX_PG_PARAM);
+			if (sql_user_col[strlen(sql_user_col) - 1] == '\n') {	/* strip the newline */
+				sql_user_col[strlen(sql_user_col) - 1] = '\0';
 			}
 		}
 		if (strncmp(cfg_input_str, "pass_col=", strlen("pass_col=")) == 0) {
-			strlcpy(pg_pass_col, cfg_input_str + strlen("pass_col="), MAX_PG_PARAM);
-			if (pg_pass_col[strlen(pg_pass_col) - 1] == '\n') {	/* strip the newline */
-				pg_pass_col[strlen(pg_pass_col) - 1] = '\0';
+			strlcpy(sql_pass_col, cfg_input_str + strlen("pass_col="), MAX_PG_PARAM);
+			if (sql_pass_col[strlen(sql_pass_col) - 1] == '\n') {	/* strip the newline */
+				sql_pass_col[strlen(sql_pass_col) - 1] = '\0';
 			}
 		}
 		if (strncmp(cfg_input_str, "digest_alg=", strlen("digest_alg=")) == 0) {
@@ -135,101 +125,6 @@ int             i = 0, md_len = 0;
 		syslog(LOG_ERR, "error closing config file: %s\n", strerror(errno));
 	}
 
-	/* connect to the postgresql server */
-	snprintf(pg_conninfo, MAX_PG_QUERY_CMD, "dbname=%s user=%s password=%s", pg_dbname, pg_dbuser, pg_dbpass);
-	pg_conn = PQconnectdb(pg_conninfo);
-
-	switch (PQstatus(pg_conn)) {
-		case CONNECTION_OK:
-			break;
-		case CONNECTION_BAD:
-			syslog(LOG_ERR, "postgresql connection is not complete!\n\t%s\n", PQerrorMessage(pg_conn));
-			PQfinish(pg_conn);
-			return(EXIT_FAILURE);
-		default:
-			syslog(LOG_ERR, "postgresql connection state is not determinable!\n\t%s\n", PQerrorMessage(pg_conn));
-			return(EXIT_FAILURE);
-	}
-
-
-	strlcpy(username, got_username, EVP_MAX_MD_SIZE * 2 + 1);
-
-	/* escape the provided parameters */
-	pg_user_col_escaped = malloc(strlen(pg_user_col) * 2 + 1);
-	PQescapeStringConn(pg_conn, pg_user_col_escaped, pg_user_col, sizeof(pg_user_col), NULL);
-
-	pg_pass_col_escaped = malloc(strlen(pg_pass_col) * 2 + 1);
-	PQescapeStringConn(pg_conn, pg_pass_col_escaped, pg_pass_col, sizeof(pg_pass_col), NULL);
-
-	pg_table_escaped = malloc(strlen(pg_table) * 2 + 1);
-	PQescapeStringConn(pg_conn, pg_table_escaped, pg_table, sizeof(pg_table), NULL);
-
-	username_escaped = malloc(strlen(username) * 2 + 1);
-	PQescapeStringConn(pg_conn, username_escaped, username, sizeof(username), NULL);
-
-	/* fill the template sql command with the required fields */
-	snprintf(pg_query_cmd, MAX_PG_QUERY_CMD, pg_query_tpl, pg_pass_col_escaped, pg_table_escaped, pg_user_col_escaped, username_escaped);
-
-	free(pg_user_col_escaped);
-	free(pg_pass_col_escaped);
-	free(pg_table_escaped);
-	free(username_escaped);
-
-	/* execute the query */
-	pg_result = PQexec(pg_conn, pg_query_cmd);
-	switch (pg_result_status = PQresultStatus(pg_result)) {
-		case PGRES_TUPLES_OK:	/* this what we want. we got back some data */
-			pg_num_rows = PQntuples(pg_result);
-			if (pg_num_rows < 1) {
-				syslog(LOG_ERR, "postgresql command have returned no rows!\n");
-				return(EXIT_FAILURE);
-			}
-			if (pg_num_rows > 1) {
-				syslog(LOG_ERR, "postgresql command have returned more than one rows!\n");
-				return(EXIT_FAILURE);
-			}
-			strlcpy(password, PQgetvalue(pg_result, 0, 0), EVP_MAX_MD_SIZE * 2 + 1);
-			break;
-		case PGRES_COMMAND_OK:
-			syslog(LOG_ERR, "postgresql command result: OK(%s) - but no data has been returned!\n", PQresStatus(pg_result_status));
-			PQclear(pg_result);
-			PQfinish(pg_conn);
-
-			return(EXIT_FAILURE);
-		case PGRES_EMPTY_QUERY:
-			syslog(LOG_ERR, "postgresql command result: ERROR(%s) - empty command string.\n", PQresStatus(pg_result_status));
-			PQclear(pg_result);
-			PQfinish(pg_conn);
-
-			return(EXIT_FAILURE);
-		case PGRES_BAD_RESPONSE:
-			syslog(LOG_ERR, "postgresql command result: ERROR(%s) - bad response from server.\n", PQresStatus(pg_result_status));
-			PQclear(pg_result);
-			PQfinish(pg_conn);
-
-			return(EXIT_FAILURE);
-		case PGRES_NONFATAL_ERROR:
-			syslog(LOG_ERR, "postgresql command result: ERROR(%s) - non fatal error occured.\n", PQresStatus(pg_result_status));
-			PQclear(pg_result);
-			PQfinish(pg_conn);
-
-			return(EXIT_FAILURE);
-		case PGRES_FATAL_ERROR:
-			syslog(LOG_ERR, "postgresql command result: ERROR(%s) - fatal error occured.\n", PQresStatus(pg_result_status));
-			PQclear(pg_result);
-			PQfinish(pg_conn);
-
-			return(EXIT_FAILURE);
-		default:
-			syslog(LOG_ERR, "postgresql command result: %s\n", PQresStatus(pg_result_status));
-			PQclear(pg_result);
-			PQfinish(pg_conn);
-
-			return(EXIT_FAILURE);
-	}
-
-	PQclear(pg_result);
-	PQfinish(pg_conn);
 
 	/* create a message digest from the user supplied password */
 	OpenSSL_add_all_digests();
@@ -250,13 +145,145 @@ int             i = 0, md_len = 0;
 		strlcat(got_password_digest_string, digest_tmp, md_len * 2 + 1);	/* append the temp var to the final digest string */
 	}
 
+	if (got_password_digest_string == NULL  ||  strlen(got_password_digest_string) <= 0) {
+		return(EXIT_FAILURE);
+	}
 
-	/* compare the two message digests */
-	if (strncmp(password, got_password_digest_string, strlen(password)) == 0) {
+
+	/* we write the queried password to the global 'password' variable in one of the following functions */
+#ifdef PGSQL_BACKEND
+	pgsql_check(got_username);
+#elif MYSQL_BACKEND
+	mysql_check(got_username);
+#endif
+
+	/* compare the compiled message digest and the queried one */
+printf("pass: %s, got_pass: %s\n", password, got_password_digest_string); /* XXX DEBUG */
+	if (strcmp(password, got_password_digest_string) == 0) {
 		free(got_password_digest_string);
 		return(EXIT_SUCCESS);
 	} else {
 		free(got_password_digest_string);
 		return(EXIT_FAILURE);
 	}
-} /* int pgsql_check() */
+} /* int sql_check() */
+
+
+#ifdef PGSQL_BACKEND
+void
+pgsql_check(const char *got_username)
+{
+PGconn		*pg_conn = NULL;
+char		pg_conninfo[MAX_PG_QUERY_CMD] = "";
+
+PGresult	*pg_result = NULL;
+ExecStatusType	pg_result_status = 0;
+
+int		pg_num_rows = 0;
+
+char		*pg_user_col_escaped = NULL, *pg_pass_col_escaped = NULL, *pg_table_escaped = NULL;
+const char	*pg_query_tpl = "SELECT %s FROM %s WHERE %s = '%s';";
+char		pg_query_cmd[MAX_PG_QUERY_CMD] = "";
+
+char		username[MAX_USERNAME] = "";
+char		*username_escaped = NULL;
+
+
+
+	/* connect to the postgresql server */
+	snprintf(pg_conninfo, MAX_PG_QUERY_CMD, "dbname=%s user=%s password=%s", sql_dbname, sql_dbuser, sql_dbpass);
+	pg_conn = PQconnectdb(pg_conninfo);
+
+	switch (PQstatus(pg_conn)) {
+		case CONNECTION_OK:
+			break;
+		case CONNECTION_BAD:
+			syslog(LOG_ERR, "postgresql connection is not complete!\n\t%s\n", PQerrorMessage(pg_conn));
+			PQfinish(pg_conn);
+			return;
+		default:
+			syslog(LOG_ERR, "postgresql connection state is not determinable!\n\t%s\n", PQerrorMessage(pg_conn));
+			return;
+	}
+
+
+	strlcpy(username, got_username, MAX_USERNAME);
+
+	/* escape the provided parameters */
+	pg_user_col_escaped = malloc(strlen(sql_user_col) * 2 + 1);
+	PQescapeStringConn(pg_conn, pg_user_col_escaped, sql_user_col, sizeof(sql_user_col), NULL);
+
+	pg_pass_col_escaped = malloc(strlen(sql_pass_col) * 2 + 1);
+	PQescapeStringConn(pg_conn, pg_pass_col_escaped, sql_pass_col, sizeof(sql_pass_col), NULL);
+
+	pg_table_escaped = malloc(strlen(sql_table) * 2 + 1);
+	PQescapeStringConn(pg_conn, pg_table_escaped, sql_table, sizeof(sql_table), NULL);
+
+	username_escaped = malloc(strlen(username) * 2 + 1);
+	PQescapeStringConn(pg_conn, username_escaped, username, sizeof(username), NULL);
+
+	/* fill the template sql command with the required fields */
+	snprintf(pg_query_cmd, MAX_PG_QUERY_CMD, pg_query_tpl, pg_pass_col_escaped, pg_table_escaped, pg_user_col_escaped, username_escaped);
+
+	free(pg_user_col_escaped);
+	free(pg_pass_col_escaped);
+	free(pg_table_escaped);
+	free(username_escaped);
+
+	/* execute the query */
+	pg_result = PQexec(pg_conn, pg_query_cmd);
+	switch (pg_result_status = PQresultStatus(pg_result)) {
+		case PGRES_TUPLES_OK:	/* this what we want. we got back some data */
+			pg_num_rows = PQntuples(pg_result);
+			if (pg_num_rows < 1) {
+				syslog(LOG_ERR, "postgresql command have returned no rows!\n");
+				return;
+			}
+			if (pg_num_rows > 1) {
+				syslog(LOG_ERR, "postgresql command have returned more than one rows!\n");
+				return;
+			}
+			strlcpy(password, PQgetvalue(pg_result, 0, 0), MAX_PASSWORD);
+
+			break;
+		case PGRES_COMMAND_OK:
+			syslog(LOG_ERR, "postgresql command result: OK(%s) - but no data has been returned!\n", PQresStatus(pg_result_status));
+			break;
+		case PGRES_EMPTY_QUERY:
+			syslog(LOG_ERR, "postgresql command result: ERROR(%s) - empty command string.\n", PQresStatus(pg_result_status));
+			break;
+		case PGRES_BAD_RESPONSE:
+			syslog(LOG_ERR, "postgresql command result: ERROR(%s) - bad response from server.\n", PQresStatus(pg_result_status));
+			break;
+		case PGRES_NONFATAL_ERROR:
+			syslog(LOG_ERR, "postgresql command result: ERROR(%s) - non fatal error occured.\n", PQresStatus(pg_result_status));
+			break;
+		case PGRES_FATAL_ERROR:
+			syslog(LOG_ERR, "postgresql command result: ERROR(%s) - fatal error occured.\n", PQresStatus(pg_result_status));
+			break;
+		default:
+			syslog(LOG_ERR, "postgresql command result: %s\n", PQresStatus(pg_result_status));
+			break;
+	}
+
+	PQclear(pg_result);
+	PQfinish(pg_conn);
+} /* void pgsql_check() */
+#endif
+
+
+#ifdef MYSQL_BACKEND
+void
+mysql_check(const char *got_username)
+{
+MYSQL		*mysql = NULL;
+
+
+	mysql = mysql_init(NULL);
+	if (mysql) {
+		mysql_close(mysql);
+	} else {
+		puts("error in mysql");
+	}
+} /* void mysql_check() */
+#endif

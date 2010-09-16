@@ -1,18 +1,30 @@
-PROG=		login_-pgsql
-SRCS=		login_pgsql.c pgsql_check.c
-OBJ=		login_pgsql.o pgsql_check.o
-MAN=		login_pgsql.8
+PROG=		login_-sql
+SRCS=		login_sql.c sql_check.c
+OBJ=		login_sql.o sql_check.o
+MAN=		login_sql.8
 DOCS=		README
 
-DOCDIR=		$(LOCALBASE)/share/doc/login_pgsql
+DOCDIR=		$(LOCALBASE)/share/doc/login_sql
 MANDIR=		$(LOCALBASE)/man/cat
 BINDIR=		$(LOCALBASE)/libexec/auth
 
-CFLAGS+=	-Wall
-PGSQL_INCLUDE!=	pg_config --includedir
+SQL_BACKEND?=
 
-LDADD+=		-lpq -lcrypto -lssl -lcom_err
-PGSQL_LIB!=	pg_config --libdir
+CFLAGS+=	-Wall
+.if ${SQL_BACKEND:L:Mpgsql}
+CFLAGS+=	-I`pg_config --includedir` -DPGSQL_BACKEND
+.elif ${SQL_BACKEND:L:Mmysql}
+CFLAGS+=	`mysql_config --include` -DMYSQL_BACKEND
+.endif
+
+
+LDADD+=		-lcrypto -lssl -lcom_err
+.if ${SQL_BACKEND:L:Mpgsql}
+LDADD+=		-L`pg_config --libdir`
+LDADD+=		-lpq
+.elif ${SQL_BACKEND:L:Mmysql}
+LDADD+=		`mysql_config --libs`
+.endif
 
 CLEANFILES+=	*.cat[0-9]
 
@@ -20,10 +32,10 @@ CLEANFILES+=	*.cat[0-9]
 all: ${PROG}
 
 ${OBJ}: ${SRCS}
-	${CC} -c -I${PGSQL_INCLUDE} ${CFLAGS} ${SRCS}
+	${CC} -c ${CFLAGS} ${SRCS}
 
 ${PROG}: ${OBJ}
-	${CC} -o ${PROG} -L${PGSQL_LIB} ${CFLAGS} ${LDADD} \
+	${CC} -o ${PROG} ${CFLAGS} ${LDADD} \
 		${OBJ}
 
 beforeinstall:
