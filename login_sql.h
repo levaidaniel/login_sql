@@ -1,5 +1,5 @@
-#ifndef	LOGIN_SQL_H
-#define	LOGIN_SQL_H
+#ifndef	_LOGIN_SQL_H
+#define	_LOGIN_SQL_H
 
 #define		MODE_LOGIN		0
 #define		MODE_CHALLENGE		1

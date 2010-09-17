@@ -1,6 +1,6 @@
 PROG=		login_-sql
-SRCS=		login_sql.c sql_check.c
-OBJ=		login_sql.o sql_check.o
+SRCS=		login_sql.c sql_check.c pgsql_check.c mysql_check.c
+OBJ=		login_sql.o sql_check.o pgsql_check.o mysql_check.o
 MAN=		login_sql.8
 DOCS=		README
 
