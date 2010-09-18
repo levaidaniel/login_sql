@@ -61,7 +61,6 @@ Specifies the path name for the configuration file. If you omit this variable, t
 .Sh CONFIGURATION FILE
 The configuration file ignores any line which doesn't start with a recognized configuration option. Options are in the form of
 .Em option=value.
-.Er
 The following is a list of the usable options.
 .Pp
 .Em PostgreSQL
@@ -76,7 +75,7 @@ http://www.postgresql.org/8.4/static/libpq-connect.html
 .Pp
 Search for PQconnectdb, and refer to the recognized parameters. Pay attention to the difference between the
 .Cm host=
-and the 
+and the
 .Cm hostaddr=
 options, and their meaning if they are omitted.
 .It Cm pgsql_table
@@ -134,9 +133,18 @@ options:
 The message digest algorithm in which the password field is hashed in the password column. You can use any digest which is supported by your OpenSSL library. For more information, enter
 .Dl openssl dgst -h
 on the command line.
+.Pp
+The special value
+.Cm cleartext
+means that the password is stored in clear text in the database, so no hashing is necessary for the password entered.
+.It Cm sql_backend
+The SQL backend to use for retrieving the password. Valid values are
+.Cm pgsql
+and
+.Cm mysql.
 .El
 .Sh FILES
-.Bl -tag -compact
+.Bl -hang -width ||||||||||||||||||||||||||||||||| -compact
 .It Pa /etc/login_sql.conf
 Default configuration file
 .El
