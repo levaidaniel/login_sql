@@ -74,6 +74,7 @@ mysql_connection	mysql_conn = {
 #endif
 char		digest_alg[MAX_PARAM] = "";
 char		digest_alg_clear = 0;	/* do we use cleartext password */
+char		sql_backend[MAX_PARAM] = "";
 
 char		password[MAX_PASSWORD] = "";	/* the db specific functions will (over)write the password to this variable */
 
@@ -209,6 +210,13 @@ int		i = 0, md_len = 0;
 				digest_alg[strlen(digest_alg) - 1] = '\0';
 			}
 		}
+
+		if (strncmp(cfg_input_str, CFG_PARAM_SQL_BACKEND, strlen(CFG_PARAM_SQL_BACKEND)) == 0) {
+			strlcpy(sql_backend, cfg_input_str + strlen(CFG_PARAM_SQL_BACKEND), MAX_PARAM);
+			if (sql_backend[strlen(sql_backend) - 1] == '\n') {	/* strip the newline */
+				sql_backend[strlen(sql_backend) - 1] = '\0';
+			}
+		}
 	}
 	/* error checkings of the file descriptor */
 	if (ferror(cfg_file_stream) != 0) {
@@ -257,12 +265,19 @@ int		i = 0, md_len = 0;
 	}
 
 
-	/* we write the queried password to the 'password' variable in one of the following functions */
+	/* we write the queried password to the 'password' variable
+		in one of the following database specific functions */
+	if (strncmp(sql_backend, "pgsql", strlen("pgsql")) == 0) {
 #ifdef PGSQL_BACKEND
-	pgsql_check(got_username, password, &pgsql_conn);
-#elif MYSQL_BACKEND
-	mysql_check(got_username, password, &mysql_conn);
+		pgsql_check(got_username, password, &pgsql_conn);
 #endif
+	} else if (strncmp(sql_backend, "mysql", strlen("mysql")) == 0) {
+#ifdef MYSQL_BACKEND
+		mysql_check(got_username, password, &mysql_conn);
+#endif
+	} else {
+		syslog(LOG_ERR, "invalid sql backend: %s", sql_backend);
+	}
 
 	/* compare the compiled message digest and the queried one */
 	if (strcmp(password, got_password_digest_string) == 0) {

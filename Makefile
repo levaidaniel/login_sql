@@ -8,23 +8,28 @@ DOCDIR=		$(LOCALBASE)/share/doc/login_sql
 MANDIR=		$(LOCALBASE)/man/cat
 BINDIR=		$(LOCALBASE)/libexec/auth
 
-SQL_BACKEND?=
-
 CFLAGS+=	-Wall
-.if ${SQL_BACKEND:L:Mpgsql}
+
+PGSQL_BACKEND?=
+.if ${PGSQL_BACKEND:L:My} || ${PGSQL_BACKEND:L:Myes}
 CFLAGS+=	-I`pg_config --includedir` -DPGSQL_BACKEND
-.elif ${SQL_BACKEND:L:Mmysql}
+.endif
+
+MYSQL_BACKEND?=
+.if ${MYSQL_BACKEND:L:My} || ${MYSQL_BACKEND:L:Myes}
 CFLAGS+=	`mysql_config --include` -DMYSQL_BACKEND
 .endif
 
 
 LDADD+=		-lcrypto -lssl -lcom_err
-.if ${SQL_BACKEND:L:Mpgsql}
+.if ${PGSQL_BACKEND:L:My} || ${PGSQL_BACKEND:L:Myes}
 LDADD+=		-L`pg_config --libdir`
 LDADD+=		-lpq
-.elif ${SQL_BACKEND:L:Mmysql}
+.endif
+.if ${MYSQL_BACKEND:L:My} || ${MYSQL_BACKEND:L:Myes}
 LDADD+=		`mysql_config --libs`
 .endif
+
 
 CLEANFILES+=	*.cat[0-9]
 

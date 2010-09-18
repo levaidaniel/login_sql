@@ -54,7 +54,7 @@ utility uses only the following
 .Em optional
 .Xr login.conf 5
 variable:
-.Bl -tag -offset |||
+.Bl -tag -offset ||| -width |
 .It Cm x-sql-cfg_file
 Specifies the path name for the configuration file. If you omit this variable, then the default configuration file will be used.
 .El
@@ -66,7 +66,7 @@ The following is a list of the usable options.
 .Pp
 .Em PostgreSQL
 specific options:
-.Bl -tag -offset |||
+.Bl -tag -offset ||| -width |
 .It Cm pgsql_dbconnection
 This is a space separated list of keyword=value pairs. Common keywords include: host, port, dbname, user, password, etc...
 .Pp
@@ -87,7 +87,7 @@ The column's name which contains the username.
 .Pp
 .Em MySQL
 specific options:
-.Bl -tag -offset |||
+.Bl -tag -offset ||| -width |
 .It Cm pgsql_pass_col
 The column's name which contains the password.
 .It Cm mysql_host
@@ -129,15 +129,17 @@ http://dev.mysql.com/doc/refman/5.1/en/mysql-ssl-set.html
 .Pp
 .Em Miscellaneous
 options:
-.Bl -tag -offset |||
+.Bl -tag -offset ||| -width |
 .It Cm digest_alg
 The message digest algorithm in which the password field is hashed in the password column. You can use any digest which is supported by your OpenSSL library. For more information, enter
 .Dl openssl dgst -h
 on the command line.
 .El
 .Sh FILES
-.Em /etc/login_sql.conf
-- Default configuration file.
+.Bl -tag -compact
+.It Pa /etc/login_sql.conf
+Default configuration file
+.El
 .Sh EXAMPLE CONFIGURATION FILE
 .Bd -literal
 pgsql_dbconnection=dbname=superdb user=jester password=s3cr3t
