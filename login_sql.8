@@ -2,11 +2,11 @@
 .\"All rights reserved.
 .\"Redistribution and use in source and binary forms, with or without
 .\"modification, are permitted provided that the following conditions are met:
-.\"  * Redistributions of source code must retain the above copyright
-.\"    notice, this list of conditions and the following disclaimer.
-.\"  * Redistributions in binary form must reproduce the above copyright
-.\"    notice, this list of conditions and the following disclaimer in the
-.\"    documentation and/or other materials provided with the distribution.
+.\"	* Redistributions of source code must retain the above copyright
+.\"	notice, this list of conditions and the following disclaimer.
+.\"	* Redistributions in binary form must reproduce the above copyright
+.\"	notice, this list of conditions and the following disclaimer in the
+.\"	documentation and/or other materials provided with the distribution.
 .\"THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 .\"ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 .\"WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -22,7 +22,7 @@
 .Os
 .Sh NAME
 .Nm login_sql
-.Nd provides PostgreSQL authentication
+.Nd provides SQL authentication
 .Sh SYNOPSIS
 .Nm login_sql
 .Op Fl s Ar service
@@ -37,7 +37,7 @@ utility is called by
 .Xr su 1 ,
 and others to authenticate the
 .Ar user
-against a PostgreSQL database.
+against an SQL database. Currently PostgreSQL and MySQL is supported.
 .Pp
 The
 .Ar user
@@ -47,7 +47,6 @@ The
 .Ar service
 argument specifies which protocol to use with the
 invoking program.
-.Pp
 .Sh LOGIN.CONF VARIABLES
 The
 .Nm
@@ -55,23 +54,112 @@ utility uses only the following
 .Em optional
 .Xr login.conf 5
 variable:
-.Bl -tag -width x-sql-cfg_file
-.It x-sql-cfg_file
-The config file which contains the information to connect to the PostgreSQL database.
-If you omit this variable, the default config file will be used, which is /etc/login_sql.conf.
-It must contain the following variables:
-.Bl -tag -width x-sql-cfg_file
-.It Em dbname Er "The database name".
-.It Em dbuser Er "The username used to authenticate to the database".
-.It Em dbpass Er "The password used to authenticate to the database".
-.It Em table Er "The table name in the database which contains the username and password columns".
-.It Em user_col Er "The column's name which contains the username".
-.It Em pass_col Er "The column's name which contains the password".
-.It Em digest_alg Er "The message digest algorithm which is used to store the password in the database. You can use any digest which is supported by your OpenSSL library".
+.Bl -tag -offset |||
+.It Cm x-sql-cfg_file
+Specifies the path name for the configuration file. If you omit this variable, then the default configuration file will be used.
 .El
+.Sh CONFIGURATION FILE
+The configuration file ignores any line which doesn't start with a recognized configuration option. Options are in the form of
+.Em option=value.
+.Er
+The following is a list of the usable options.
+.Pp
+.Em PostgreSQL
+specific options:
+.Bl -tag -offset |||
+.It Cm pgsql_dbconnection
+This is a space separated list of keyword=value pairs. Common keywords include: host, port, dbname, user, password, etc...
+.Pp
+For more information:
+.Pp
+http://www.postgresql.org/8.4/static/libpq-connect.html
+.Pp
+Search for PQconnectdb, and refer to the recognized parameters. Pay attention to the difference between the
+.Cm host=
+and the 
+.Cm hostaddr=
+options, and their meaning if they are omitted.
+.It Cm pgsql_table
+The table name in the database which contains the username and password columns.
+.It Cm pgsql_user_col
+The column's name which contains the username.
 .El
+.Pp
+.Em MySQL
+specific options:
+.Bl -tag -offset |||
+.It Cm pgsql_pass_col
+The column's name which contains the password.
+.It Cm mysql_host
+Host name or IP address.
+.It Cm mysql_port
+Port number for a TCP/IP connection.
+.It Cm mysql_db
+Database's name which contains the user/pass.
+.It Cm mysql_user
+Username used for connecting to the database.
+.It Cm mysql_pass
+Password used for connecting to the database.
+.It Cm mysql_table
+Table's name which contains the user/pass.
+.It Cm mysql_user_col
+The column's name which contains the username.
+.It Cm mysql_pass_col
+The column's name which contains the password.
+.It Cm mysql_key
+Path name to the key file.
+.It Cm mysql_cert
+Path name to the certificate file.
+.It Cm mysql_ca
+Path name to the certificate authority file.
+.It Cm mysql_capath
+Path name to the directory that contains trusted SSL CA certificates in pem format.
+.It Cm mysql_cipher
+List of permissible ciphers to use for SSL encryption.
+.El
+.Bd -ragged -offset |||
+For the MySQL parameters' valid or default values please read the MySQL documentation here:
+.Pp
+http://dev.mysql.com/doc/refman/5.1/en/mysql-real-connect.html
+.Pp
+For the MySQL SSL parameters' valid or default values please read the MySQL SSL documentation here:
+.Pp
+http://dev.mysql.com/doc/refman/5.1/en/mysql-ssl-set.html
+.Ed
+.Pp
+.Em Miscellaneous
+options:
+.Bl -tag -offset |||
+.It Cm digest_alg
+The message digest algorithm in which the password field is hashed in the password column. You can use any digest which is supported by your OpenSSL library. For more information, enter
+.Dl openssl dgst -h
+on the command line.
+.El
+.Sh FILES
+.Em /etc/login_sql.conf
+- Default configuration file.
+.Sh EXAMPLE CONFIGURATION FILE
+.Bd -literal
+pgsql_dbconnection=dbname=superdb user=jester password=s3cr3t
+pgsql_table=login_info
+pgsql_user_col=username
+pgsql_pass_col=pwd
+
+mysql_host=mysql.slickmachine.net
+mysql_port=12345
+mysql_db=login
+mysql_user=my_user
+mysql_pass=v1lm4
+mysql_table=authentication
+mysql_user_col=user
+mysql_pass_col=pass
+
+digest_alg=sha256
+.Ed
 .Sh SEE ALSO
 .Xr login 1 ,
 .Xr su 1 ,
 .Xr login.conf 5 ,
-.Xr psql 1
+.Xr psql 1 ,
+.Xr mysql 1 ,
+.Xr openssl 1

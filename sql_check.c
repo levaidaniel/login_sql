@@ -73,6 +73,7 @@ mysql_connection	mysql_conn = {
 };
 #endif
 char		digest_alg[MAX_PARAM] = "";
+char		digest_alg_clear = 0;	/* do we use cleartext password */
 
 char		password[MAX_PASSWORD] = "";	/* the db specific functions will (over)write the password to this variable */
 
@@ -222,6 +223,7 @@ int		i = 0, md_len = 0;
 	if (strncmp(digest_alg, "cleartext", strlen("cleartext")) == 0) {
 		/* if the digest algorithm is cleartext, use the password as is ... */
 
+		digest_alg_clear = 1;
 		got_password_digest_string = (char *)got_password;
 	} else {
 		/* ... otherwise create a message digest from the user supplied password */
@@ -246,10 +248,12 @@ int		i = 0, md_len = 0;
 			strlcat(got_password_digest_string, digest_tmp, md_len * 2 + 1);	/* append the temp var to the final digest string */
 		}
 		free(digest_tmp);
+	}
 
-		if (got_password_digest_string == NULL  ||  strlen(got_password_digest_string) <= 0) {
-			return(EXIT_FAILURE);
-		}
+	if (	got_password_digest_string == NULL  ||
+			strlen(got_password_digest_string) <= 0  ||
+			strlen(got_password) <= 0) {
+		return(EXIT_FAILURE);
 	}
 
 
@@ -262,10 +266,14 @@ int		i = 0, md_len = 0;
 
 	/* compare the compiled message digest and the queried one */
 	if (strcmp(password, got_password_digest_string) == 0) {
-		free(got_password_digest_string);
+		if (!digest_alg_clear) {
+			free(got_password_digest_string);
+		}
 		return(EXIT_SUCCESS);
 	} else {
-		free(got_password_digest_string);
+		if (!digest_alg_clear) {
+			free(got_password_digest_string);
+		}
 		return(EXIT_FAILURE);
 	}
 } /* int sql_check() */

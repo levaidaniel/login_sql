@@ -3,28 +3,75 @@ authentication framework. Currently PostgreSQL and MySQL is supported.
 
 After installation the auth style name will be -sql. You can use it after you
 configured a login class in login.conf(5) to use this auth style, and created a
-config file for the authentication program.
+configuration file for the authentication program.
 
-Example config file:
+The configuration file ignores any line which doesn't start with a recognized
+configuration option.
+Example configuration file with all of the usable options:
 
-dbname=bsd_login
-dbuser=bsd_login
-dbpass=bsd_login
-table=bsd_login
-user_col=username
-pass_col=password
-digest_alg=sha1
+PostgreSQL specific options:
+pgsql_dbconnection=dbname=bsd_auth user=bsd_auth password=bsd_auth
+pgsql_table=bsd_auth
+pgsql_user_col=username
+pgsql_pass_col=password
+
+MySQL specific options:
+mysql_host=
+mysql_port=
+mysql_db=bsd_auth
+mysql_user=bsd_auth
+mysql_pass=bsd_auth
+mysql_table=bsd_auth
+mysql_user_col=username
+mysql_pass_col=password
+mysql_key=
+mysql_cert=
+mysql_ca=
+mysql_capath=
+mysql_cipher=
+
+digest_alg=sha256
 
 
 Explanation:
-dbname:		The database name
-dbuser:		The username used to authenticate to the database
-dbpass:		The password used to authenticate to the database
-table:		The table name in the database which contains the username and password columns
-user_col:	The column's name which contains the username
-pass_col:	The column's name which contains the password
-digest_alg:	The message digest algorithm which is used to store the password in the database.
-		You can use any digest which is supported by your OpenSSL library.
+pgsql_dbconnection:	This can include:
+			host, hostaddr, port, dbname, user, password, sslmode,
+			etc...
+			For more information:
+			http://www.postgresql.org/8.4/static/libpq-connect.html
+			Search for PQconnectdb, and read the recognized
+			parameters. Any parameter can be given here as
+			keyword=value pairs, separated by spaces.
+pgsql_table:		The table name in the database which contains the
+			username and password columns.
+pgsql_user_col:		The column's name which contains the username.
+pgsql_pass_col:		The column's name which contains the password.
+
+mysql_host:		Host name or IP address.
+mysql_port:		Port number for a TCP/IP connection.
+mysql_db:		Database's name which contains the user/pass.
+mysql_user:		Username used for connecting to the database.
+mysql_pass:		Password used for connecting to the database.
+mysql_table:		Table's name which containts the user/pass.
+mysql_user_col:		The column's name which contains the username.
+mysql_pass_col:		The column's name which contains the password.
+mysql_key:		
+mysql_cert:		
+mysql_ca:		
+mysql_capath:		
+mysql_cipher:		
+For the MySQL parameters' valid or default values please read the MySQL
+documentation here:
+http://dev.mysql.com/doc/refman/5.1/en/mysql-real-connect.html
+For the MySQL SSL parameters' valid or default values please read the MySQL
+documentation here:
+http://dev.mysql.com/doc/refman/5.1/en/mysql-ssl-set.html
+
+digest_alg:	The message digest algorithm in which the password field is
+		hashed in the password column.
+		You can use any digest which is supported by your OpenSSL
+		library. For more information, enter `openssl dgst -h` on the
+		command line.
 
 
 Example login.conf(5):
@@ -35,4 +82,5 @@ sql:\
 	:tc=default:
 
 
-The config file parameter is optional. If you omit it, the default will be used, which is /etc/login_sql.conf.
+The config file parameter is optional. If you omit it, the default will be used,
+which is /etc/login_sql.conf.
