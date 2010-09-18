@@ -4,11 +4,11 @@
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in the
- *     documentation and/or other materials provided with the distribution.
+ *	* Redistributions of source code must retain the above copyright
+ *	notice, this list of conditions and the following disclaimer.
+ *	* Redistributions in binary form must reproduce the above copyright
+ *	notice, this list of conditions and the following disclaimer in the
+ *	documentation and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -39,11 +39,11 @@ PGconn		*pg_conn = NULL;
 PGresult	*pg_result = NULL;
 ExecStatusType	pg_result_status = 0;
 
-int		pg_num_rows = 0;
+int		pg_numrows = 0;
 
-char		*pg_user_col_escaped = NULL, *pg_pass_col_escaped = NULL, *pg_table_escaped = NULL;
-const char	*pg_query_tpl = "SELECT %s FROM %s WHERE %s = '%s';";
-char		pg_query_cmd[MAX_QUERY_CMD] = "";
+char		*user_col_escaped = NULL, *pass_col_escaped = NULL, *table_escaped = NULL;
+const char	*query_tpl = "SELECT %s FROM %s WHERE %s = '%s';";
+char		query_cmd[MAX_QUERY_CMD] = "";
 
 char		username[MAX_USERNAME] = "";
 char		*username_escaped = NULL;
@@ -67,37 +67,37 @@ char		*username_escaped = NULL;
 
 
 	/* escape the provided parameters */
-	pg_user_col_escaped = malloc(strlen(pgsql_conn->user_col) * 2 + 1);
-	PQescapeStringConn(pg_conn, pg_user_col_escaped, pgsql_conn->user_col, sizeof(pgsql_conn->user_col), NULL);
+	user_col_escaped = malloc(strlen(pgsql_conn->user_col) * 2 + 1);
+	PQescapeStringConn(pg_conn, user_col_escaped, pgsql_conn->user_col, strlen(pgsql_conn->user_col), NULL);
 
-	pg_pass_col_escaped = malloc(strlen(pgsql_conn->pass_col) * 2 + 1);
-	PQescapeStringConn(pg_conn, pg_pass_col_escaped, pgsql_conn->pass_col, sizeof(pgsql_conn->pass_col), NULL);
+	pass_col_escaped = malloc(strlen(pgsql_conn->pass_col) * 2 + 1);
+	PQescapeStringConn(pg_conn, pass_col_escaped, pgsql_conn->pass_col, strlen(pgsql_conn->pass_col), NULL);
 
-	pg_table_escaped = malloc(strlen(pgsql_conn->table) * 2 + 1);
-	PQescapeStringConn(pg_conn, pg_table_escaped, pgsql_conn->table, sizeof(pgsql_conn->table), NULL);
+	table_escaped = malloc(strlen(pgsql_conn->table) * 2 + 1);
+	PQescapeStringConn(pg_conn, table_escaped, pgsql_conn->table, strlen(pgsql_conn->table), NULL);
 
 	strlcpy(username, got_username, MAX_USERNAME);
 	username_escaped = malloc(strlen(username) * 2 + 1);
-	PQescapeStringConn(pg_conn, username_escaped, username, sizeof(username), NULL);
+	PQescapeStringConn(pg_conn, username_escaped, username, strlen(username), NULL);
 
 	/* fill the template sql command with the required fields */
-	snprintf(pg_query_cmd, MAX_QUERY_CMD, pg_query_tpl, pg_pass_col_escaped, pg_table_escaped, pg_user_col_escaped, username_escaped);
+	snprintf(query_cmd, MAX_QUERY_CMD, query_tpl, pass_col_escaped, table_escaped, user_col_escaped, username_escaped);
 
-	free(pg_user_col_escaped);
-	free(pg_pass_col_escaped);
-	free(pg_table_escaped);
+	free(user_col_escaped);
+	free(pass_col_escaped);
+	free(table_escaped);
 	free(username_escaped);
 
 	/* execute the query */
-	pg_result = PQexec(pg_conn, pg_query_cmd);
+	pg_result = PQexec(pg_conn, query_cmd);
 	switch (pg_result_status = PQresultStatus(pg_result)) {
 		case PGRES_TUPLES_OK:	/* this what we want. we got back some data */
-			pg_num_rows = PQntuples(pg_result);
-			if (pg_num_rows < 1) {
+			pg_numrows = PQntuples(pg_result);
+			if (pg_numrows < 1) {
 				syslog(LOG_ERR, "postgresql command have returned no rows!\n");
 				return;
 			}
-			if (pg_num_rows > 1) {
+			if (pg_numrows > 1) {
 				syslog(LOG_ERR, "postgresql command have returned more than one rows!\n");
 				return;
 			}

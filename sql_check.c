@@ -4,11 +4,11 @@
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in the
- *     documentation and/or other materials provided with the distribution.
+ *	* Redistributions of source code must retain the above copyright
+ *	notice, this list of conditions and the following disclaimer.
+ *	* Redistributions in binary form must reproduce the above copyright
+ *	notice, this list of conditions and the following disclaimer in the
+ *	documentation and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -25,25 +25,36 @@
 #include "common.h"
 #include "sql_check.h"
 
+#ifdef PGSQL_BACKEND
+#include "pgsql_check.h"
+#endif
+
+#ifdef MYSQL_BACKEND
+#include "mysql_check.h"
+#endif
+
+/* OpenSSL stuff for the message digest algorithms */
+#include <openssl/evp.h>
+
+
+extern char	*config_file;
+
+
+int sql_check(const char *got_username, const char *got_password)
+{
+FILE		*cfg_file_stream = NULL;
+char		cfg_input_str[MAX_CFG_LINE];
+int		cfg_file_error = 0;
 
 #ifdef PGSQL_BACKEND
-
-#include "pgsql_check.h"
-
 pgsql_connection	pgsql_conn = {
 	"",	/* dbconnection */
 	"",	/* table */
 	"",	/* user_col */
 	""	/* pass_col */
 };
-
 #endif
-
-
 #ifdef MYSQL_BACKEND
-
-#include "mysql_check.h"
-
 mysql_connection	mysql_conn = {
 	"",	/* host */
 	"",	/* socket */
@@ -60,34 +71,18 @@ mysql_connection	mysql_conn = {
 	"",	/* capath */
 	""	/* cipher */
 };
-
 #endif
-
-
-/* OpenSSL stuff for the message digest algorithms */
-#include <openssl/evp.h>
-
-
-extern char	*config_file;
-
-
-int sql_check(const char *got_username, const char *got_password)
-{
-FILE		*cfg_file_stream = NULL;
-char		cfg_input_str[MAX_CFG_LINE];
-int		cfg_file_error = 0;
-
 char		digest_alg[MAX_PARAM] = "";
 
 char		password[MAX_PASSWORD] = "";	/* the db specific functions will (over)write the password to this variable */
 
 /* OpenSSL stuff for the message digest algorithms */
-EVP_MD_CTX      mdctx;
+EVP_MD_CTX	mdctx;
 const EVP_MD	*md = NULL;
 unsigned char	got_password_digest[EVP_MAX_MD_SIZE] = "";
 char		*got_password_digest_string = NULL;
 char		*digest_tmp = NULL;
-int             i = 0, md_len = 0;
+int		i = 0, md_len = 0;
 
 
 	/* if there was no config file defined in login.conf(5), use the default filename */
@@ -266,7 +261,6 @@ int             i = 0, md_len = 0;
 #endif
 
 	/* compare the compiled message digest and the queried one */
-printf("pass: %s, got_pass: %s\n", password, got_password_digest_string); /* XXX DEBUG */
 	if (strcmp(password, got_password_digest_string) == 0) {
 		free(got_password_digest_string);
 		return(EXIT_SUCCESS);

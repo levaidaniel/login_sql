@@ -4,11 +4,11 @@
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in the
- *     documentation and/or other materials provided with the distribution.
+ *	* Redistributions of source code must retain the above copyright
+ *	notice, this list of conditions and the following disclaimer.
+ *	* Redistributions in binary form must reproduce the above copyright
+ *	notice, this list of conditions and the following disclaimer in the
+ *	documentation and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -38,11 +38,14 @@ void
 mysql_check(const char *got_username, char password[], mysql_connection *mysql_conn)
 {
 MYSQL		mysql;
+MYSQL_RES	*mysql_result = NULL;
+MYSQL_ROW	mysql_row;
+my_ulonglong	mysql_numrows = 0;
 
 char		*user_col_escaped = NULL, *pass_col_escaped = NULL, *table_escaped = NULL;
-const char	*query_tpl = "SELECT %s FROM %s WHERE %s = '%s';";
+const char	*query_tpl = "SELECT %s FROM %s WHERE %s = '%s'";
 char		query_cmd[MAX_QUERY_CMD] = "";
-                                                                                                                                           
+
 char		username[MAX_USERNAME] = "";
 char		*username_escaped = NULL;
 
@@ -68,29 +71,62 @@ char		*username_escaped = NULL;
 		return;
 	}
 
-        /* escape the provided parameters */                                                                                               
-	user_col_escaped = malloc(strlen(mysql_conn->user_col) * 2 + 1);                                                                
-	//PQescapeStringConn(pg_conn, pg_user_col_escaped, mysql_conn->user_col, sizeof(mysql_conn->user_col), NULL);                        
-					   
-	pass_col_escaped = malloc(strlen(mysql_conn->pass_col) * 2 + 1);                                                                
-	//PQescapeStringConn(pg_conn, pg_pass_col_escaped, mysql_conn->pass_col, sizeof(mysql_conn->pass_col), NULL);                        
-							   
-	table_escaped = malloc(strlen(mysql_conn->table) * 2 + 1);                                                                      
-	//PQescapeStringConn(pg_conn, pg_table_escaped, mysql_conn->table, sizeof(mysql_conn->table), NULL);                                 
-									   
-	strlcpy(username, got_username, MAX_USERNAME);                                                                                     
-	username_escaped = malloc(strlen(username) * 2 + 1);                                                                               
-	//PQescapeStringConn(pg_conn, username_escaped, username, sizeof(username), NULL);                                                   
-												   
-	/* fill the template sql command with the required fields */                                                                       
-	snprintf(query_cmd, MAX_QUERY_CMD, query_tpl, pass_col_escaped, table_escaped, user_col_escaped, username_escaped); 
-													   
-	free(user_col_escaped);                                                                                                         
-	free(pass_col_escaped);                                                                                                         
-	free(table_escaped);                                                                                                            
-	free(username_escaped);
-	mysql_query(&mysql, query_cmd);
+	/* escape the provided parameters */
+	user_col_escaped = malloc(strlen(mysql_conn->user_col) * 2 + 1);
+	mysql_real_escape_string(&mysql, user_col_escaped, mysql_conn->user_col, strlen(mysql_conn->user_col));
 
+	pass_col_escaped = malloc(strlen(mysql_conn->pass_col) * 2 + 1);
+	mysql_real_escape_string(&mysql, pass_col_escaped, mysql_conn->pass_col, strlen(mysql_conn->pass_col));
+
+	table_escaped = malloc(strlen(mysql_conn->table) * 2 + 1);
+	mysql_real_escape_string(&mysql, table_escaped, mysql_conn->table, strlen(mysql_conn->table));
+
+	strlcpy(username, got_username, MAX_USERNAME);
+	username_escaped = malloc(strlen(username) * 2 + 1);
+	mysql_real_escape_string(&mysql, username_escaped, username, strlen(username));
+
+	/* fill the template sql command with the required fields */
+	snprintf(query_cmd, MAX_QUERY_CMD, query_tpl, pass_col_escaped, table_escaped, user_col_escaped, username_escaped);
+
+	free(user_col_escaped);
+	free(pass_col_escaped);
+	free(table_escaped);
+	free(username_escaped);
+
+	/* execute the query */
+	if (mysql_query(&mysql, query_cmd) != 0) {
+		syslog(LOG_ERR, "error executing query: %s", mysql_error(&mysql));
+		mysql_close(&mysql);
+		return;
+	}
+
+	mysql_result = mysql_store_result(&mysql);
+	if (!mysql_result) {
+		syslog(LOG_ERR, "query returned no result");
+		mysql_close(&mysql);
+		return;
+	}
+
+	mysql_numrows = mysql_num_rows(mysql_result);
+	if (mysql_numrows < 1) {
+		syslog(LOG_ERR, "query returned too few rows: %d", (int)mysql_numrows);
+		mysql_free_result(mysql_result);
+		mysql_close(&mysql);
+		return;
+	}
+	if (mysql_numrows > 1) {
+		syslog(LOG_ERR, "query returned too many rows: %d", (int)mysql_numrows);
+		mysql_free_result(mysql_result);
+		mysql_close(&mysql);
+		return;
+	}
+
+	/* write the queried password to the 'password' variable */
+	if ((mysql_row = mysql_fetch_row(mysql_result))) {
+		strlcpy(password, mysql_row[0], MAX_PASSWORD);
+	}
+
+	mysql_free_result(mysql_result);
 	mysql_close(&mysql);
 } /* void mysql_check() */
 #endif
