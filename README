@@ -41,5 +41,6 @@ mysql_cipher=
 
 Miscellaneous options:
 digest_alg=
+sql_backend=
 
 For the explanation of the options please see the login_sql(8) manual page.
