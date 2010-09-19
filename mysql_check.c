@@ -72,17 +72,17 @@ char		*username_escaped = NULL;
 	}
 
 	/* escape the provided parameters */
-	user_col_escaped = malloc(strlen(mysql_conn->user_col) * 2 + 1);
+	user_col_escaped = malloc(strlen(mysql_conn->user_col) * 2 + 1); malloc_check(user_col_escaped);
 	mysql_real_escape_string(&mysql, user_col_escaped, mysql_conn->user_col, strlen(mysql_conn->user_col));
 
-	pass_col_escaped = malloc(strlen(mysql_conn->pass_col) * 2 + 1);
+	pass_col_escaped = malloc(strlen(mysql_conn->pass_col) * 2 + 1); malloc_check(pass_col_escaped);
 	mysql_real_escape_string(&mysql, pass_col_escaped, mysql_conn->pass_col, strlen(mysql_conn->pass_col));
 
-	table_escaped = malloc(strlen(mysql_conn->table) * 2 + 1);
+	table_escaped = malloc(strlen(mysql_conn->table) * 2 + 1); malloc_check(table_escaped);
 	mysql_real_escape_string(&mysql, table_escaped, mysql_conn->table, strlen(mysql_conn->table));
 
 	strlcpy(username, got_username, MAX_USERNAME);
-	username_escaped = malloc(strlen(username) * 2 + 1);
+	username_escaped = malloc(strlen(username) * 2 + 1); malloc_check(username_escaped);
 	mysql_real_escape_string(&mysql, username_escaped, username, strlen(username));
 
 	/* fill the template sql command with the required fields */

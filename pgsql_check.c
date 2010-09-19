@@ -67,17 +67,17 @@ char		*username_escaped = NULL;
 
 
 	/* escape the provided parameters */
-	user_col_escaped = malloc(strlen(pgsql_conn->user_col) * 2 + 1);
+	user_col_escaped = malloc(strlen(pgsql_conn->user_col) * 2 + 1); malloc_check(user_col_escaped);
 	PQescapeStringConn(pg_conn, user_col_escaped, pgsql_conn->user_col, strlen(pgsql_conn->user_col), NULL);
 
-	pass_col_escaped = malloc(strlen(pgsql_conn->pass_col) * 2 + 1);
+	pass_col_escaped = malloc(strlen(pgsql_conn->pass_col) * 2 + 1); malloc_check(pass_col_escaped);
 	PQescapeStringConn(pg_conn, pass_col_escaped, pgsql_conn->pass_col, strlen(pgsql_conn->pass_col), NULL);
 
-	table_escaped = malloc(strlen(pgsql_conn->table) * 2 + 1);
+	table_escaped = malloc(strlen(pgsql_conn->table) * 2 + 1); malloc_check(table_escaped);
 	PQescapeStringConn(pg_conn, table_escaped, pgsql_conn->table, strlen(pgsql_conn->table), NULL);
 
 	strlcpy(username, got_username, MAX_USERNAME);
-	username_escaped = malloc(strlen(username) * 2 + 1);
+	username_escaped = malloc(strlen(username) * 2 + 1); malloc_check(username_escaped);
 	PQescapeStringConn(pg_conn, username_escaped, username, strlen(username), NULL);
 
 	/* fill the template sql command with the required fields */

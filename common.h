@@ -6,3 +6,5 @@
 #include <syslog.h>
 
 #define		LOGIN_SQL_VERSION	"0.9.6"
+
+int		malloc_check(void *);

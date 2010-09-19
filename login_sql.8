@@ -130,9 +130,25 @@ http://dev.mysql.com/doc/refman/5.1/en/mysql-ssl-set.html
 options:
 .Bl -tag -offset ||| -width |
 .It Cm digest_alg
-The message digest algorithm in which the password field is hashed in the password column. You can use any digest which is supported by your OpenSSL library. For more information, enter
+The message digest or encryption algorithm to use with the user supplied password. This will be the default, if no
+.Ql {digest}
+prefix is prepended before the password string in the password column. If the query returns a strings which is prefixed with something between curly brackets, then that digest or encryption algorithm will be used instead of the default.
+.Pp
+You can use any digest which is supported by your OpenSSL library. For more information, enter
 .Dl openssl dgst -h
 on the command line.
+.Pp
+On top of that, the
+.Cm blowfish
+and the
+.Cm md5crypt
+values make use of the
+.Xr crypt 3
+function and encrypt the user supplied password with salted
+.Cm blowfish
+or salted
+.Cm md5
+encryption algorithms, respectively.
 .Pp
 The special value
 .Cm cleartext

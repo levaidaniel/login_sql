@@ -33,6 +33,9 @@
 #include "mysql_check.h"
 #endif
 
+
+#include <unistd.h>
+
 /* OpenSSL stuff for the message digest algorithms */
 #include <openssl/evp.h>
 
@@ -73,10 +76,11 @@ mysql_connection	mysql_conn = {
 };
 #endif
 char		digest_alg[MAX_PARAM] = "";
-char		digest_alg_clear = 0;	/* do we use cleartext password */
 char		sql_backend[MAX_PARAM] = "";
 
 char		password[MAX_PASSWORD] = "";	/* the db specific functions will (over)write the password to this variable */
+
+char		salt[29 + 1] = "";	/* to use with crypt() */
 
 /* OpenSSL stuff for the message digest algorithms */
 EVP_MD_CTX	mdctx;
@@ -84,7 +88,7 @@ const EVP_MD	*md = NULL;
 unsigned char	got_password_digest[EVP_MAX_MD_SIZE] = "";
 char		*got_password_digest_string = NULL;
 char		*digest_tmp = NULL;
-int		i = 0, md_len = 0;
+int		i = 0, di = 0, md_len = 0;
 
 
 	/* if there was no config file defined in login.conf(5), use the default filename */
@@ -228,13 +232,97 @@ int		i = 0, md_len = 0;
 	}
 
 
+	/* we write the queried password to the 'password' variable
+	 * in one of the following database specific functions */
+	if (strncmp(sql_backend, "pgsql", strlen("pgsql")) == 0) {
+#ifdef PGSQL_BACKEND
+		pgsql_check(got_username, password, &pgsql_conn);
+#endif
+	} else if (strncmp(sql_backend, "mysql", strlen("mysql")) == 0) {
+#ifdef MYSQL_BACKEND
+		mysql_check(got_username, password, &mysql_conn);
+#endif
+	} else {
+		syslog(LOG_ERR, "invalid sql backend: %s", sql_backend);
+	}
+
+
+	/*
+	 * Now that we have the stored/queried password, figure out what digest
+	 * algorithm was used to create it (if any). The password is in the
+	 * {algo}digest_string format (like in dovecot). If the {algo} prefix
+	 * is missing, then we assume it was hashed with the global (defined in
+	 * the config file) digest algorithm.
+	 */
+
+	/* Here we basically overwrite the globally define digest_alg with the
+	 * one defined in the password string itself. */
+	if (strncmp(password, "{cleartext}", strlen("{cleartext}")) == 0) {
+		strlcpy(digest_alg, "cleartext", MAX_PARAM);
+		strlcpy(password, password + strlen(digest_alg) + 2, MAX_PASSWORD);
+	} else if (strncmp(password, "{blowfish}", strlen("{blowfish}")) == 0) {
+		strlcpy(digest_alg, "blowfish", MAX_PARAM);
+		strlcpy(password, password + strlen(digest_alg) + 2, MAX_PASSWORD);
+	} else if (strncmp(password, "{md5crypt}", strlen("{md5crypt}")) == 0) {
+		strlcpy(digest_alg, "md5crypt", MAX_PARAM);
+		strlcpy(password, password + strlen(digest_alg) + 2, MAX_PASSWORD);
+	} else if (password[0] != '{'  ||  !strchr(password, '}')) {
+		/* If there is no prefix, leave the digest_alg at the global
+		 * value. */
+	} else {
+		/* Otherwise we just use the prefix, and hope that openssl will
+		 * recognize it :) */
+		i = 1; di = 0;
+		while ( password[i] != '}'  &&  i <= strlen(password)  &&
+				di < MAX_PARAM ) {
+			digest_alg[di++] = password[i];
+			i++;
+		}	/* ^^^ copy the digest alg to digest_alg without the
+			   	curly brackets */
+		digest_alg[di] = '\0';
+
+		strlcpy(password, password + strlen(digest_alg) + 2, MAX_PASSWORD);
+	}
+
+
+	/* apply the appropriate crypt/hash method */
+
 	if (strncmp(digest_alg, "cleartext", strlen("cleartext")) == 0) {
 		/* if the digest algorithm is cleartext, use the password as is ... */
 
-		digest_alg_clear = 1;
-		got_password_digest_string = (char *)got_password;
+		got_password_digest_string = (char *)malloc(strlen(got_password) + 1); malloc_check(got_password_digest_string);
+		strlcpy(got_password_digest_string, got_password, strlen(got_password) + 1);
+	} else if (strncmp(digest_alg, "blowfish", strlen("blowfish")) == 0) {
+		/* ... if it is blowfish, use the crypt() function in blowfish
+		 * mode ... */
+
+		strlcpy(salt, password, 29 + 1);	/* extract the salt from the queried password */
+		got_password_digest_string = crypt(got_password, salt);
+		if (!got_password_digest_string) {
+			syslog(LOG_ERR, "error encrypting password: %s\n", strerror(errno));
+			return(EXIT_FAILURE);
+		}
+	} else if (strncmp(digest_alg, "md5crypt", strlen("md5crypt")) == 0) {
+		/* ... if it is md5crypt, use the crypt() function in md5 mode
+		 * ... */
+
+		/* extract the salt from the queried password
+		 * It spans from the first character until the third '$' sign. */
+		i = 0; di = 0;
+		while (	di != 3  &&  i <= strlen(password)  &&  i < sizeof(salt) ) {
+			salt[i] = password[i];
+			if (password[i] == '$')
+				di++;
+			i++;
+		}
+		got_password_digest_string = crypt(got_password, salt);
+		if (!got_password_digest_string) {
+			syslog(LOG_ERR, "error encrypting password: %s\n", strerror(errno));
+			return(EXIT_FAILURE);
+		}
 	} else {
-		/* ... otherwise create a message digest from the user supplied password */
+		/* ... if something else, then pass it to openssl, and see if it
+		 * can make something out of it :) */
 
 		OpenSSL_add_all_digests();
 		md = EVP_get_digestbyname(digest_alg);
@@ -249,8 +337,8 @@ int		i = 0, md_len = 0;
 		EVP_MD_CTX_cleanup(&mdctx);
 
 		/* create a string which contains the message digest as a string from the above generated message digest */
-		got_password_digest_string = (char *)malloc(EVP_MAX_MD_SIZE * 2 + 1);
-		digest_tmp = (char *)malloc(sizeof(got_password_digest) * 2 + 1);
+		got_password_digest_string = (char *)calloc(1, EVP_MAX_MD_SIZE * 2 + 1); malloc_check(got_password_digest_string);
+		digest_tmp = (char *)malloc(sizeof(got_password_digest) * 2 + 1); malloc_check(digest_tmp);
 		for(i = 0; i < md_len; i++) {
 			snprintf(digest_tmp, sizeof(got_password_digest[i]) * 2 + 1, "%02x", got_password_digest[i]);	/* copy out each hex char to a temp var */
 			strlcat(got_password_digest_string, digest_tmp, md_len * 2 + 1);	/* append the temp var to the final digest string */
@@ -265,30 +353,13 @@ int		i = 0, md_len = 0;
 	}
 
 
-	/* we write the queried password to the 'password' variable
-		in one of the following database specific functions */
-	if (strncmp(sql_backend, "pgsql", strlen("pgsql")) == 0) {
-#ifdef PGSQL_BACKEND
-		pgsql_check(got_username, password, &pgsql_conn);
-#endif
-	} else if (strncmp(sql_backend, "mysql", strlen("mysql")) == 0) {
-#ifdef MYSQL_BACKEND
-		mysql_check(got_username, password, &mysql_conn);
-#endif
-	} else {
-		syslog(LOG_ERR, "invalid sql backend: %s", sql_backend);
-	}
-
+printf("%s\n%s\n", password, got_password_digest_string);	/* XXX debug */
 	/* compare the compiled message digest and the queried one */
 	if (strcmp(password, got_password_digest_string) == 0) {
-		if (!digest_alg_clear) {
-			free(got_password_digest_string);
-		}
+		//free(got_password_digest_string);
 		return(EXIT_SUCCESS);
 	} else {
-		if (!digest_alg_clear) {
-			free(got_password_digest_string);
-		}
+		//free(got_password_digest_string);
 		return(EXIT_FAILURE);
 	}
 } /* int sql_check() */
