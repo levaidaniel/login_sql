@@ -1,4 +1,7 @@
-PROG=		login_-sql
+BINOWN=		root
+BINGRP=		auth
+
+PROG=		login_sql
 SRCS=		login_sql.c sql_check.c pgsql_check.c mysql_check.c malloc_check.c
 OBJ=		login_sql.o sql_check.o pgsql_check.o mysql_check.o malloc_check.o
 MAN=		login_sql.8

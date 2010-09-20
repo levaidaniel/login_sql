@@ -1,14 +1,14 @@
 This program can be used to authenticate against an SQL database using the BSD
 authentication framework. Currently PostgreSQL and MySQL is supported.
 
-After installation the auth style name will be -sql. You can use it after you
+After installation the auth style name will be 'sql'. You can use it after you
 configured a login class in login.conf(5) to use this auth style, and created a
 configuration file for the authentication program.
 
 Example login.conf(5):
 
 sql:\
-	:auth=-sql,passwd:\
+	:auth=sql,passwd:\
 	:x-sql-cfg_file=/etc/auth/sql.conf:\
 	:tc=default:
 
