@@ -1,17 +1,21 @@
 BINOWN=		root
 BINGRP=		auth
-
+BINDIR=		$(LOCALBASE)/libexec/auth
 PROG=		login_sql
-SRCS=		login_sql.c sql_check.c pgsql_check.c mysql_check.c malloc_check.c
-OBJ=		login_sql.o sql_check.o pgsql_check.o mysql_check.o malloc_check.o
+
+MANDIR=		$(LOCALBASE)/man/cat
 MAN=		login_sql.8
-DOCS=		README
+
+DOCOWN=		root
+DOCGRP=		bin
+DOCDIR=		$(LOCALBASE)/share/doc/login_sql
+DOC=		README
+
 
 SUBDIR+=	blowcrypt
 
-DOCDIR=		$(LOCALBASE)/share/doc/login_sql
-MANDIR=		$(LOCALBASE)/man/cat
-BINDIR=		$(LOCALBASE)/libexec/auth
+
+SRCS=		login_sql.c sql_check.c pgsql_check.c mysql_check.c malloc_check.c
 
 CFLAGS+=	-Wall
 
@@ -41,21 +45,18 @@ CLEANFILES+=	*.cat[0-9]
 
 all: ${PROG}
 
-${OBJ}: ${SRCS}
-	${CC} -c ${CFLAGS} ${SRCS}
-
-${PROG}: ${OBJ}
+${PROG}: ${SRCS}
 	${CC} -o ${PROG} ${CFLAGS} ${LDADD} \
-		${OBJ}
+		${SRCS}
 
 beforeinstall:
 	${INSTALL} -d -o ${BINOWN} -g ${BINGRP} -m ${DIRMODE} \
 		${DESTDIR}${BINDIR}
-	${INSTALL} -d -o ${BINOWN} -g ${BINGRP} -m ${DIRMODE} \
+	${INSTALL} -d -o ${DOCOWN} -g ${DOCGRP} -m ${DIRMODE} \
 		${DESTDIR}${DOCDIR}
 
 afterinstall:
-	${INSTALL} ${INSTALL_COPY} -o ${BINOWN} -g ${BINGRP} \
-		-m 444 ${DOCS} ${DESTDIR}${DOCDIR}/
+	${INSTALL} -o ${DOCOWN} -g ${DOCGRP} -m ${DOCMODE} \
+		${DOC} ${DESTDIR}${DOCDIR}/
 
 .include <bsd.prog.mk>
