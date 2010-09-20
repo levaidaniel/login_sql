@@ -4,6 +4,8 @@ OBJ=		login_sql.o sql_check.o pgsql_check.o mysql_check.o malloc_check.o
 MAN=		login_sql.8
 DOCS=		README
 
+SUBDIR+=	blowcrypt
+
 DOCDIR=		$(LOCALBASE)/share/doc/login_sql
 MANDIR=		$(LOCALBASE)/man/cat
 BINDIR=		$(LOCALBASE)/libexec/auth

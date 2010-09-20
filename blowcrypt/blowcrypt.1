@@ -1,0 +1,50 @@
+.\"Copyright (c) 2010, LEVAI Daniel
+.\"All rights reserved.
+.\"Redistribution and use in source and binary forms, with or without
+.\"modification, are permitted provided that the following conditions are met:
+.\"	* Redistributions of source code must retain the above copyright
+.\"	notice, this list of conditions and the following disclaimer.
+.\"	* Redistributions in binary form must reproduce the above copyright
+.\"	notice, this list of conditions and the following disclaimer in the
+.\"	documentation and/or other materials provided with the distribution.
+.\"THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+.\"ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+.\"WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+.\"DISCLAIMED. IN NO EVENT SHALL LEVAI Daniel BE LIABLE FOR ANY
+.\"DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+.\"(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+.\"LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+.\"ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+.\"(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+.\"SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+.Dd $Mdocdate: Sep 20 2010 $
+.Dt BLOWCRYPT 1
+.Os
+.Sh NAME
+.Nm blowcrypt
+.Nd encrypts using Blowfish
+.Sh SYNOPSIS
+.Nm
+.Op Fl p Ar password
+.Op Fl l Ar logrounds
+.Op Fl e
+.Op Fl h
+.Sh DESCRIPTION
+The
+.Nm
+utility uses the
+.Cm Blowfish
+cipher to encrypt stuff.
+.Sh OPTIONS
+.Bl -tag -offset ||| -width |
+.It Fl p
+A string to encrypt. If not specified, it will be read from standard input.
+.It Fl l
+How many log rounds to use for encryption. The default is 6.
+.It Fl e
+Echo the password before encrypting.
+.It Fl h
+A short usage description.
+.El
+.Sh SEE ALSO
+.Xr crypt 3
