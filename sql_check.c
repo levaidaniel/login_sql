@@ -353,7 +353,6 @@ int		i = 0, di = 0, md_len = 0;
 	}
 
 
-printf("%s\n%s\n", password, got_password_digest_string);	/* XXX debug */
 	/* compare the compiled message digest and the queried one */
 	if (strcmp(password, got_password_digest_string) == 0) {
 		//free(got_password_digest_string);
