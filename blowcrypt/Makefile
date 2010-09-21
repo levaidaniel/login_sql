@@ -1,10 +1,12 @@
+LOCALBASE?=	/usr/local
+
 PROG=		blowcrypt
 SRCS=		blowcrypt.c
 OBJ=		blowcrypt.o
 MAN=		blowcrypt.1
 
-MANDIR=		$(LOCALBASE)/man/cat
-BINDIR=		$(LOCALBASE)/bin
+MANDIR=		${LOCALBASE}/man/cat
+BINDIR=		${LOCALBASE}/bin
 
 CFLAGS+=	-Wall
 

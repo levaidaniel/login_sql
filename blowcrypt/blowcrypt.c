@@ -54,7 +54,7 @@ char		echo_password = 0;
 				echo_password = 1;
 				break;
 			case 'h':
-				printf("%s [-p password] [-l logrounds] [-e]\n", argv[0]);
+				printf("%s [-p password] [-l logrounds] [-eh]\n", argv[0]);
 				return(EXIT_SUCCESS);
 				break;
 			default:
