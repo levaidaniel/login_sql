@@ -36,8 +36,9 @@ int
 main(int argc, char *argv[]) {
 char		*password = NULL, *blowfish = NULL, *salt = NULL;
 int		opt = 0;
-u_int8_t	log_rounds = 6;
-int		fd = -1, i = 0, readbuf_size = 8, password_size = 8, read_bytes = 0;
+unsigned char	log_rounds = 6;
+int		fd = -1, i = 0, read_bytes = 0;
+size_t		readbuf_size = 8, password_size = 8;
 char		*tmp = NULL;
 char		echo_password = 0;
 
@@ -48,7 +49,7 @@ char		echo_password = 0;
 				password = optarg;
 				break;
 			case 'l':
-				log_rounds = atoi(optarg);
+				log_rounds = (unsigned char)atoi(optarg);
 				break;
 			case 'e':
 				echo_password = 1;
@@ -75,9 +76,9 @@ char		echo_password = 0;
 		while((i = read(fd, tmp, readbuf_size))) {
 			read_bytes += i;
 
-			if (read_bytes >= password_size) {
-				password = realloc(password, password_size + i);
-				password_size += i;
+			if (read_bytes >= (int)password_size) {
+				password = realloc(password, password_size + (size_t)i);
+				password_size += (size_t)i;
 			}
 
 			strlcat(password, tmp, password_size);
