@@ -111,7 +111,7 @@ char		*class = NULL, *username = NULL, *password = NULL;
 			break;
 		case MODE_RESPONSE:
 			/* read the first string, which is the challenge (we do not use that) */
-			while ((read(3, &response[count], (size_t)1) == 1)  &&  count < sizeof(response)) {
+			while ( (read(3, &response[count], (size_t)1) == 1)  &&  count < MAX_PASSWORD ) {
 				if (response[count] == '\0') {	/* read terminating null char in challenge */
 					break;
 				}
@@ -120,7 +120,7 @@ char		*class = NULL, *username = NULL, *password = NULL;
 
 			/* read the second string, which is the response and the password */
 			count = 0;
-			while ((read(3, &response[count], (size_t)1) == 1)  &&  count < sizeof(response)) {
+			while ( (read(3, &response[count], (size_t)1) == 1)  &&  count < MAX_PASSWORD ) {
 				if (response[count] == '\0') {	/* read terminating null char in response */
 					password = response;
 					break;

@@ -31,6 +31,8 @@
 #define		CFG_PARAM_DIGEST_ALG		"digest_alg="
 #define		CFG_PARAM_SQL_BACKEND		"sql_backend="
 
+#define		BLOWFISH_SALT_LEN		29
+
 int		sql_check(const char *got_username, const char *got_password);
 
 #endif

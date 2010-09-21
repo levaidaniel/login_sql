@@ -1,39 +1,46 @@
+LOCALBASE?=	/usr/local
+
 BINOWN=		root
 BINGRP=		auth
-BINDIR=		$(LOCALBASE)/libexec/auth
+BINDIR=		${LOCALBASE}/libexec/auth
 PROG=		login_sql
 
-MANDIR=		$(LOCALBASE)/man/cat
+MANDIR=		${LOCALBASE}/man/cat
 MAN=		login_sql.8
 
 DOCOWN=		root
 DOCGRP=		bin
-DOCDIR=		$(LOCALBASE)/share/doc/login_sql
+DOCDIR=		${LOCALBASE}/share/doc/login_sql
 DOC=		README
 
 
 SUBDIR+=	blowcrypt
 
+PGSQL_BACKEND?=
+MYSQL_BACKEND?=
 
-SRCS=		login_sql.c sql_check.c pgsql_check.c mysql_check.c malloc_check.c
+SRCS=		login_sql.c sql_check.c malloc_check.c
+.if ${PGSQL_BACKEND:L:My} || ${PGSQL_BACKEND:L:Myes}
+SRCS+=		pgsql_check.c
+.endif
+.if ${MYSQL_BACKEND:L:My} || ${MYSQL_BACKEND:L:Myes}
+SRCS+=		mysql_check.c
+.endif
 
 CFLAGS+=	-Wall
 
-PGSQL_BACKEND?=
-.if ${PGSQL_BACKEND:L:My} || ${PGSQL_BACKEND:L:Myes}
-CFLAGS+=	-I`pg_config --includedir` -DPGSQL_BACKEND
-.endif
-
-MYSQL_BACKEND?=
-.if ${MYSQL_BACKEND:L:My} || ${MYSQL_BACKEND:L:Myes}
-CFLAGS+=	`mysql_config --include` -DMYSQL_BACKEND
-.endif
-
-
 LDADD+=		-lcrypto -lssl -lcom_err
+
+.if ${PGSQL_BACKEND:L:My} || ${PGSQL_BACKEND:L:Myes}
+CFLAGS+=	-I`pg_config --includedir` `pg_config --cflags` -DPGSQL_BACKEND
+.endif
 .if ${PGSQL_BACKEND:L:My} || ${PGSQL_BACKEND:L:Myes}
 LDADD+=		-L`pg_config --libdir`
-LDADD+=		-lpq
+LDADD+=		-lpq `pg_config --libs`
+.endif
+
+.if ${MYSQL_BACKEND:L:My} || ${MYSQL_BACKEND:L:Myes}
+CFLAGS+=	`mysql_config --cflags` -DMYSQL_BACKEND
 .endif
 .if ${MYSQL_BACKEND:L:My} || ${MYSQL_BACKEND:L:Myes}
 LDADD+=		`mysql_config --libs`
