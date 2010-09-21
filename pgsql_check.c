@@ -64,6 +64,7 @@ char		*username_escaped = NULL;
 			syslog(LOG_ERR, "postgresql connection state is not determinable!\n\t%s\n", PQerrorMessage(pg_conn));
 			return;
 	}
+	syslog(LOG_INFO, "pgsql: connected to \"%s\"(%s)", pgsql_conn->host, pgsql_conn->db);
 
 
 	/* escape the provided parameters */

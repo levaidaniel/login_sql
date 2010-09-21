@@ -54,7 +54,9 @@ pgsql_connection	pgsql_conn = {
 	"",	/* dbconnection */
 	"",	/* table */
 	"",	/* user_col */
-	""	/* pass_col */
+	"",	/* pass_col */
+	"",	/* host */
+	""	/* db */
 };
 #endif
 #ifdef MYSQL_BACKEND
@@ -75,6 +77,8 @@ mysql_connection	mysql_conn = {
 	""	/* cipher */
 };
 #endif
+char		*where_str = NULL;	/* for the parameter searching */
+
 char		digest_alg[MAX_PARAM] = "";
 char		sql_backend[MAX_PARAM] = "";
 
@@ -110,6 +114,27 @@ unsigned int	md_len = 0, i = 0, di = 0;
 			strlcpy(pgsql_conn.dbconnection, cfg_input_str + (int)strlen(CFG_PARAM_PGSQL_DBCONNECTION), MAX_CFG_LINE);
 			if (pgsql_conn.dbconnection[(int)strlen(pgsql_conn.dbconnection) - 1] == '\n') {	/* strip the newline */
 				pgsql_conn.dbconnection[(int)strlen(pgsql_conn.dbconnection) - 1] = '\0';
+			}
+
+			/* Extract the dbname parameter. */
+			where_str = strstr(pgsql_conn.dbconnection, "dbname=");
+			if (where_str) {	/* if the parameter is found */
+				strlcpy(pgsql_conn.db, where_str + (int)strlen("dbname="), MAX_PARAM);
+				pgsql_conn.db[strcspn(pgsql_conn.db, " ")] = '\0';	/* close the string where the first space appears */
+			}
+
+			/* Extract the host/hostaddr parameter.
+			 * The hostaddr parameter takes precedence over the host parameter.
+			 */
+			where_str = strstr(pgsql_conn.dbconnection, "host=");
+			if (where_str) {	/* if the parameter is found */
+				strlcpy(pgsql_conn.host, where_str + (int)strlen("host="), MAX_PARAM);
+				pgsql_conn.host[strcspn(pgsql_conn.host, " ")] = '\0';	/* close the string where the first space appears */
+			}
+			where_str = strstr(pgsql_conn.dbconnection, "hostaddr=");
+			if (where_str) {
+				strlcpy(pgsql_conn.host, where_str + (int)strlen("hostaddr="), MAX_PARAM);
+				pgsql_conn.host[strcspn(pgsql_conn.host, " ")] = '\0';	/* close the string where the first space appears */
 			}
 		}
 		if (strncmp(cfg_input_str, CFG_PARAM_PGSQL_TABLE, strlen(CFG_PARAM_PGSQL_TABLE)) == 0) {
