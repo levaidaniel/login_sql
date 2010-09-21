@@ -120,7 +120,7 @@ unsigned int	md_len = 0, i = 0, di = 0;
 			where_str = strstr(pgsql_conn.dbconnection, "dbname=");
 			if (where_str) {	/* if the parameter is found */
 				strlcpy(pgsql_conn.db, where_str + (int)strlen("dbname="), MAX_PARAM);
-				pgsql_conn.db[strcspn(pgsql_conn.db, " ")] = '\0';	/* close the string where the first space appears */
+				pgsql_conn.db[(int)strcspn(pgsql_conn.db, " ")] = '\0';	/* close the string where the first space appears */
 			}
 
 			/* Extract the host/hostaddr parameter.
@@ -129,12 +129,12 @@ unsigned int	md_len = 0, i = 0, di = 0;
 			where_str = strstr(pgsql_conn.dbconnection, "host=");
 			if (where_str) {	/* if the parameter is found */
 				strlcpy(pgsql_conn.host, where_str + (int)strlen("host="), MAX_PARAM);
-				pgsql_conn.host[strcspn(pgsql_conn.host, " ")] = '\0';	/* close the string where the first space appears */
+				pgsql_conn.host[(int)strcspn(pgsql_conn.host, " ")] = '\0';	/* close the string where the first space appears */
 			}
 			where_str = strstr(pgsql_conn.dbconnection, "hostaddr=");
 			if (where_str) {
 				strlcpy(pgsql_conn.host, where_str + (int)strlen("hostaddr="), MAX_PARAM);
-				pgsql_conn.host[strcspn(pgsql_conn.host, " ")] = '\0';	/* close the string where the first space appears */
+				pgsql_conn.host[(int)strcspn(pgsql_conn.host, " ")] = '\0';	/* close the string where the first space appears */
 			}
 		}
 		if (strncmp(cfg_input_str, CFG_PARAM_PGSQL_TABLE, strlen(CFG_PARAM_PGSQL_TABLE)) == 0) {
