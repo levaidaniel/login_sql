@@ -34,8 +34,7 @@
 extern char	*config_file;
 
 
-void
-mysql_check(const char *got_username, char password[], mysql_connection *mysql_conn)
+void mysql_check(const char *got_username, char password[], mysql_connection *mysql_conn)
 {
 MYSQL		mysql;
 MYSQL_RES	*mysql_result = NULL;

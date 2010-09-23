@@ -31,8 +31,7 @@
 #include "pgsql_check.h"
 
 
-void
-pgsql_check(const char *got_username, char password[], pgsql_connection *pgsql_conn)
+void pgsql_check(const char *got_username, char password[], pgsql_connection *pgsql_conn)
 {
 PGconn		*pg_conn = NULL;
 

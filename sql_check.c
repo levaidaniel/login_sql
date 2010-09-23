@@ -375,9 +375,9 @@ unsigned int	md_len = 0, i = 0, di = 0;
 		free(digest_tmp);
 	}
 
-	if (	got_password_digest_string == NULL  ||
-			(int)strlen(got_password_digest_string) <= 0  ||
-			(int)strlen(got_password) <= 0) {
+	if ( got_password_digest_string == NULL  ||
+			strlen(got_password_digest_string) == 0  ||
+			strlen(got_password) == 0 ) {
 		return(EXIT_FAILURE);
 	}
 

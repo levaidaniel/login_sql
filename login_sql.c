@@ -38,8 +38,7 @@
 char	*config_file = NULL;
 
 
-int
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 struct		rlimit rl;
 login_cap_t	*lc = NULL;
