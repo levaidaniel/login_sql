@@ -35,6 +35,7 @@
 
 
 #include <unistd.h>
+#include <ctype.h>
 
 /* OpenSSL stuff for the message digest algorithms */
 #include <openssl/evp.h>
@@ -237,6 +238,9 @@ unsigned int	md_len = 0, i = 0, di = 0;
 			strlcpy(digest_alg, cfg_input_str + (int)strlen(CFG_PARAM_DIGEST_ALG), (size_t)MAX_PARAM);
 			if (digest_alg[(int)strlen(digest_alg) - 1] == '\n') {	/* strip the newline */
 				digest_alg[(int)strlen(digest_alg) - 1] = '\0';
+			}
+			for (i=0; i < strlen(digest_alg); i++) {
+				digest_alg[i] = (char)tolower(digest_alg[i]);
 			}
 		}
 
