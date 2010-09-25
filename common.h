@@ -5,6 +5,6 @@
 #include <string.h>
 #include <syslog.h>
 
-#define		LOGIN_SQL_VERSION	"1.0rc1"
+#define		LOGIN_SQL_VERSION	"1.0"
 
 int		malloc_check(void *);

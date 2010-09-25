@@ -83,10 +83,10 @@ char		*username_escaped = NULL;
 	/* fill the template sql command with the required fields */
 	snprintf(query_cmd, MAX_QUERY_CMD, query_tpl, pass_col_escaped, table_escaped, user_col_escaped, username_escaped);
 
-	free(user_col_escaped);
-	free(pass_col_escaped);
-	free(table_escaped);
-	free(username_escaped);
+	free(user_col_escaped); user_col_escaped = NULL;
+	free(pass_col_escaped); pass_col_escaped = NULL;
+	free(table_escaped); table_escaped = NULL;
+	free(username_escaped); username_escaped = NULL;
 
 	/* execute the query */
 	pg_result = PQexec(pg_conn, query_cmd);

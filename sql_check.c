@@ -376,7 +376,7 @@ unsigned int	md_len = 0, i = 0, di = 0;
 			snprintf(digest_tmp, sizeof(got_password_digest[i]) * 2 + 1, "%02x", got_password_digest[i]);	/* copy out each hex char to a temp var */
 			strlcat(got_password_digest_string, digest_tmp, md_len * 2 + 1);	/* append the temp var to the final digest string */
 		}
-		free(digest_tmp);
+		free(digest_tmp); digest_tmp = NULL;
 	}
 
 	if ( got_password_digest_string == NULL  ||
@@ -388,10 +388,10 @@ unsigned int	md_len = 0, i = 0, di = 0;
 
 	/* compare the compiled message digest and the queried one */
 	if (strcmp(password, got_password_digest_string) == 0) {
-		//free(got_password_digest_string);
+		//free(got_password_digest_string); got_password_digest_string = NULL
 		return(EXIT_SUCCESS);
 	} else {
-		//free(got_password_digest_string);
+		//free(got_password_digest_string); got_password_digest_string = NULL
 		return(EXIT_FAILURE);
 	}
 } /* int sql_check() */
