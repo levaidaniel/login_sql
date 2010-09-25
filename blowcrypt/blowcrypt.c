@@ -35,11 +35,14 @@
 int
 main(int argc, char *argv[]) {
 char		*password = NULL, *blowfish = NULL, *salt = NULL;
+
 int		opt = 0;
 unsigned char	log_rounds = 6;
-int		fd = -1, i = 0, read_bytes = 0;
-size_t		readbuf_size = 8, password_size = 8;
-char		*tmp = NULL;
+
+int		fd = -1;
+ssize_t		ret = 0;
+size_t		password_size = 16, pos = 0;
+
 char		echo_password = 0;
 
 
@@ -68,22 +71,40 @@ char		echo_password = 0;
 		fd = fcntl(STDIN_FILENO, F_DUPFD, 0);
 		if (fd == -1) {
 			printf("error opening standard in: %s\n", strerror(errno));
-			return(EXIT_FAILURE);
+			exit(EXIT_FAILURE);
 		}
 
 		password = malloc(password_size);
-		tmp = malloc(readbuf_size);
-		while((i = read(fd, tmp, readbuf_size))) {
-			read_bytes += i;
-
-			if (read_bytes >= (int)password_size) {
-				password = realloc(password, password_size + (size_t)i);
-				password_size += (size_t)i;
-			}
-
-			strlcat(password, tmp, password_size);
+		if (!password) {
+			printf("failed to allocate memory: %s\n", strerror(errno));
+			exit(EXIT_FAILURE);
 		}
-		password[read_bytes] = '\0';
+
+		pos = 0;
+		while( pos < password_size ) {	/* read from standard in */
+			ret = read(fd, password + (int)pos, password_size - pos);
+			if (ret <= 0) {
+				if (ret < 0) {	/* ERROR */
+					printf("error reading from standard in: %s\n", strerror(errno));
+					exit(EXIT_FAILURE);
+				}
+				if (ret == 0) {	/* EOF */
+					break;
+				}
+			}
+			pos += (size_t)ret;
+
+			if (pos == password_size) {	/* if we ran out of space in 'password', grow it */
+				password = realloc(password, password_size + (size_t)ret);
+				if (!password) {
+					printf("failed to allocate memory: %s\n", strerror(errno));
+					exit(EXIT_FAILURE);
+				} else {
+					password_size += (size_t)ret;
+				}
+			}
+		}
+		password[(int)pos] = '\0';
 	}
 
 
@@ -107,6 +128,7 @@ char		echo_password = 0;
 
 	/* Display */
 	printf("%s\n", blowfish);
+	free(password); password = NULL;
 
 
 	return(EXIT_SUCCESS);
