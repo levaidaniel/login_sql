@@ -69,7 +69,7 @@ char		*username_escaped = NULL;
 		syslog(LOG_ERR, "error connecting to mysql: %s", mysql_error(&mysql));
 		return;
 	}
-	syslog(LOG_INFO, "mysql: connected to \"%s\"(%s)", mysql_conn->host, mysql_conn->db);
+	syslog(LOG_INFO, "mysql: connected to %s(%s)", mysql_conn->host, mysql_conn->db);
 
 
 	/* escape the provided parameters */
