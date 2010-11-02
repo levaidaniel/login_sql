@@ -13,6 +13,7 @@
 #define		CFG_PARAM_PGSQL_TABLE		"pgsql_table="
 #define		CFG_PARAM_PGSQL_USER_COL	"pgsql_user_col="
 #define		CFG_PARAM_PGSQL_PASS_COL	"pgsql_pass_col="
+#define		CFG_PARAM_PGSQL_SCHEME_COL	"pgsql_scheme_col="
 
 #define		CFG_PARAM_MYSQL_HOST		"mysql_host="
 #define		CFG_PARAM_MYSQL_PORT		"mysql_port="
@@ -22,6 +23,7 @@
 #define		CFG_PARAM_MYSQL_TABLE		"mysql_table="
 #define		CFG_PARAM_MYSQL_USER_COL	"mysql_user_col="
 #define		CFG_PARAM_MYSQL_PASS_COL	"mysql_pass_col="
+#define		CFG_PARAM_MYSQL_SCHEME_COL	"mysql_scheme_col="
 #define		CFG_PARAM_MYSQL_KEY		"mysql_key="
 #define		CFG_PARAM_MYSQL_CERT		"mysql_cert="
 #define		CFG_PARAM_MYSQL_CA		"mysql_ca="

@@ -84,6 +84,9 @@ The table name in the database which contains the username and password columns.
 The column's name which contains the username.
 .It Cm pgsql_pass_col
 The column's name which contains the password.
+.It Cm pgsql_scheme_col
+The column's name which contains the password scheme. This scheme overrides the global
+.Cm digest_alg.
 .El
 .Pp
 .Em MySQL
@@ -105,6 +108,9 @@ Table's name which contains the user/pass.
 The column's name which contains the username.
 .It Cm mysql_pass_col
 The column's name which contains the password.
+.It Cm mysql_scheme_col
+The column's name which contains the password scheme. This scheme overrides the global
+.Cm digest_alg.
 .It Cm mysql_key
 Path name to the key file.
 .It Cm mysql_cert

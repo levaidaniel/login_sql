@@ -34,15 +34,16 @@
 extern char	*config_file;
 
 
-void mysql_check(const char *got_username, char password[], mysql_connection *mysql_conn)
+void mysql_check(const char *got_username, char password[], char digest_alg[], mysql_connection *mysql_conn)
 {
 MYSQL		mysql;
 MYSQL_RES	*mysql_result = NULL;
 MYSQL_ROW	mysql_row;
 my_ulonglong	mysql_numrows = 0;
+unsigned long	*mysql_lengths = NULL;
 
-char		*user_col_escaped = NULL, *pass_col_escaped = NULL, *table_escaped = NULL;
-const char	*query_tpl = "SELECT %s FROM %s WHERE %s = '%s'";
+char		*user_col_escaped = NULL, *pass_col_escaped = NULL, *scheme_col_escaped = NULL, *table_escaped = NULL;
+const char	*query_tpl = "SELECT %s, %s FROM %s WHERE %s = '%s'";
 char		query_cmd[MAX_QUERY_CMD] = "";
 
 char		username[MAX_USERNAME] = "";
@@ -79,6 +80,9 @@ char		*username_escaped = NULL;
 	pass_col_escaped = malloc(strlen(mysql_conn->pass_col) * 2 + 1); malloc_check(pass_col_escaped);
 	mysql_real_escape_string(&mysql, pass_col_escaped, mysql_conn->pass_col, strlen(mysql_conn->pass_col));
 
+	scheme_col_escaped = malloc(strlen(mysql_conn->scheme_col) * 2 + 1); malloc_check(scheme_col_escaped);
+	mysql_real_escape_string(&mysql, scheme_col_escaped, mysql_conn->scheme_col, strlen(mysql_conn->scheme_col));
+
 	table_escaped = malloc(strlen(mysql_conn->table) * 2 + 1); malloc_check(table_escaped);
 	mysql_real_escape_string(&mysql, table_escaped, mysql_conn->table, strlen(mysql_conn->table));
 
@@ -87,10 +91,11 @@ char		*username_escaped = NULL;
 	mysql_real_escape_string(&mysql, username_escaped, username, strlen(username));
 
 	/* fill the template sql command with the required fields */
-	snprintf(query_cmd, MAX_QUERY_CMD, query_tpl, pass_col_escaped, table_escaped, user_col_escaped, username_escaped);
+	snprintf(query_cmd, MAX_QUERY_CMD, query_tpl, pass_col_escaped, scheme_col_escaped, table_escaped, user_col_escaped, username_escaped);
 
 	free(user_col_escaped); user_col_escaped = NULL;
 	free(pass_col_escaped); pass_col_escaped = NULL;
+	free(scheme_col_escaped); scheme_col_escaped = NULL;
 	free(table_escaped); table_escaped = NULL;
 	free(username_escaped); username_escaped = NULL;
 
@@ -122,9 +127,26 @@ char		*username_escaped = NULL;
 		return;
 	}
 
-	/* write the queried password to the 'password' variable */
 	if ((mysql_row = mysql_fetch_row(mysql_result))) {
+		/* write the queried password to the 'password' variable */
 		strlcpy(password, mysql_row[0], MAX_PASSWORD);
+
+
+		mysql_lengths = mysql_fetch_lengths(mysql_result);
+		if ( mysql_lengths == NULL ) {
+			syslog(LOG_ERR, "error getting column lengths: %s", mysql_error(&mysql));
+			mysql_close(&mysql);
+			return;
+		}
+
+		if ( mysql_lengths[1] == 0 ) {
+			/* if the field is empty or NULL, we use the globally
+			 * defined digest_alg from the configuration file ...
+			 */
+		} else {
+			/* ... else, write the queried scheme to the 'digest_alg' variable */
+			strlcpy(digest_alg, mysql_row[1], MAX_PARAM);
+		}
 	}
 
 	mysql_free_result(mysql_result);

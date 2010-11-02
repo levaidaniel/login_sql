@@ -59,6 +59,8 @@ pgsql_connection	pgsql_conn = {
 	"",	/* host */
 	""	/* db */
 };
+
+char		*where_str = NULL;	/* for the parameter searching */
 #endif
 #ifdef MYSQL_BACKEND
 mysql_connection	mysql_conn = {
@@ -78,7 +80,6 @@ mysql_connection	mysql_conn = {
 	""	/* cipher */
 };
 #endif
-char		*where_str = NULL;	/* for the parameter searching */
 
 char		digest_alg[MAX_PARAM] = "";
 char		sql_backend[MAX_PARAM] = "";
@@ -156,6 +157,12 @@ unsigned int	md_len = 0, i = 0, di = 0;
 				pgsql_conn.pass_col[(int)strlen(pgsql_conn.pass_col) - 1] = '\0';
 			}
 		}
+		if (strncmp(cfg_input_str, CFG_PARAM_PGSQL_SCHEME_COL, strlen(CFG_PARAM_PGSQL_SCHEME_COL)) == 0) {
+			strlcpy(pgsql_conn.scheme_col, cfg_input_str + (int)strlen(CFG_PARAM_PGSQL_SCHEME_COL), MAX_PARAM);
+			if (pgsql_conn.scheme_col[(int)strlen(pgsql_conn.scheme_col) - 1] == '\n') {	/* strip the newline */
+				pgsql_conn.scheme_col[(int)strlen(pgsql_conn.scheme_col) - 1] = '\0';
+			}
+		}
 #endif
 #ifdef MYSQL_BACKEND
 		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_HOST, strlen(CFG_PARAM_MYSQL_HOST)) == 0) {
@@ -201,6 +208,12 @@ unsigned int	md_len = 0, i = 0, di = 0;
 			strlcpy(mysql_conn.pass_col, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_PASS_COL), MAX_PARAM);
 			if (mysql_conn.pass_col[(int)strlen(mysql_conn.pass_col) - 1] == '\n') {	/* strip the newline */
 				mysql_conn.pass_col[(int)strlen(mysql_conn.pass_col) - 1] = '\0';
+			}
+		}
+		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_SCHEME_COL, strlen(CFG_PARAM_MYSQL_SCHEME_COL)) == 0) {
+			strlcpy(mysql_conn.scheme_col, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_SCHEME_COL), MAX_PARAM);
+			if (mysql_conn.scheme_col[(int)strlen(mysql_conn.scheme_col) - 1] == '\n') {	/* strip the newline */
+				mysql_conn.scheme_col[(int)strlen(mysql_conn.scheme_col) - 1] = '\0';
 			}
 		}
 		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_KEY, strlen(CFG_PARAM_MYSQL_KEY)) == 0) {
@@ -265,56 +278,18 @@ unsigned int	md_len = 0, i = 0, di = 0;
 	 * in one of the following database specific functions */
 	if (strncmp(sql_backend, "pgsql", strlen("pgsql")) == 0) {
 #ifdef PGSQL_BACKEND
-		pgsql_check(got_username, password, &pgsql_conn);
+		pgsql_check(got_username, password, digest_alg, &pgsql_conn);
 #else
 		syslog(LOG_ERR, "invalid sql backend: %s", sql_backend);
 #endif
 	} else if (strncmp(sql_backend, "mysql", strlen("mysql")) == 0) {
 #ifdef MYSQL_BACKEND
-		mysql_check(got_username, password, &mysql_conn);
+		mysql_check(got_username, password, digest_alg, &mysql_conn);
 #else
 		syslog(LOG_ERR, "invalid sql backend: %s", sql_backend);
 #endif
 	} else {
 		syslog(LOG_ERR, "invalid sql backend: %s", sql_backend);
-	}
-
-
-	/*
-	 * Now that we have the stored/queried password, figure out what digest
-	 * algorithm was used to create it (if any). The password is in the
-	 * {algo}digest_string format (like in dovecot). If the {algo} prefix
-	 * is missing, then we assume it was hashed with the global (defined in
-	 * the config file) digest algorithm.
-	 */
-
-	/* Here we basically overwrite the globally define digest_alg with the
-	 * one defined in the password string itself. */
-	if (strncmp(password, "{cleartext}", strlen("{cleartext}")) == 0) {
-		strlcpy(digest_alg, "cleartext", MAX_PARAM);
-		strlcpy(password, password + (int)strlen(digest_alg) + 2, MAX_PASSWORD);
-	} else if (strncmp(password, "{blowfish}", strlen("{blowfish}")) == 0) {
-		strlcpy(digest_alg, "blowfish", MAX_PARAM);
-		strlcpy(password, password + (int)strlen(digest_alg) + 2, MAX_PASSWORD);
-	} else if (strncmp(password, "{md5crypt}", strlen("{md5crypt}")) == 0) {
-		strlcpy(digest_alg, "md5crypt", MAX_PARAM);
-		strlcpy(password, password + (int)strlen(digest_alg) + 2, MAX_PASSWORD);
-	} else if (password[0] != '{'  ||  !strchr(password, '}')) {
-		/* If there is no prefix, leave the digest_alg at the global
-		 * value. */
-	} else {
-		/* Otherwise we just use the prefix, and hope that openssl will
-		 * recognize it :) */
-		i = 1; di = 0;
-		while ( password[i] != '}'  &&  i <= strlen(password)  &&
-				di < MAX_PARAM ) {
-			digest_alg[di++] = password[i];
-			i++;
-		}	/* ^^^ copy the digest alg to digest_alg without the
-			   	curly brackets */
-		digest_alg[di] = '\0';
-
-		strlcpy(password, password + (int)strlen(digest_alg) + 2, MAX_PASSWORD);
 	}
 
 

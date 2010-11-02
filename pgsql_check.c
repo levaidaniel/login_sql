@@ -31,7 +31,7 @@
 #include "pgsql_check.h"
 
 
-void pgsql_check(const char *got_username, char password[], pgsql_connection *pgsql_conn)
+void pgsql_check(const char *got_username, char password[], char digest_alg[], pgsql_connection *pgsql_conn)
 {
 PGconn		*pg_conn = NULL;
 
@@ -40,8 +40,8 @@ ExecStatusType	pg_result_status = 0;
 
 int		pg_numrows = 0;
 
-char		*user_col_escaped = NULL, *pass_col_escaped = NULL, *table_escaped = NULL;
-const char	*query_tpl = "SELECT %s FROM %s WHERE %s = '%s';";
+char		*user_col_escaped = NULL, *pass_col_escaped = NULL, *scheme_col_escaped = NULL, *table_escaped = NULL;
+const char	*query_tpl = "SELECT %s, %s FROM %s WHERE %s = '%s';";
 char		query_cmd[MAX_QUERY_CMD] = "";
 
 char		username[MAX_USERNAME] = "";
@@ -73,6 +73,9 @@ char		*username_escaped = NULL;
 	pass_col_escaped = malloc(strlen(pgsql_conn->pass_col) * 2 + 1); malloc_check(pass_col_escaped);
 	PQescapeStringConn(pg_conn, pass_col_escaped, pgsql_conn->pass_col, strlen(pgsql_conn->pass_col), NULL);
 
+	scheme_col_escaped = malloc(strlen(pgsql_conn->scheme_col) * 2 + 1); malloc_check(scheme_col_escaped);
+	PQescapeStringConn(pg_conn, scheme_col_escaped, pgsql_conn->scheme_col, strlen(pgsql_conn->scheme_col), NULL);
+
 	table_escaped = malloc(strlen(pgsql_conn->table) * 2 + 1); malloc_check(table_escaped);
 	PQescapeStringConn(pg_conn, table_escaped, pgsql_conn->table, strlen(pgsql_conn->table), NULL);
 
@@ -81,17 +84,18 @@ char		*username_escaped = NULL;
 	PQescapeStringConn(pg_conn, username_escaped, username, strlen(username), NULL);
 
 	/* fill the template sql command with the required fields */
-	snprintf(query_cmd, MAX_QUERY_CMD, query_tpl, pass_col_escaped, table_escaped, user_col_escaped, username_escaped);
+	snprintf(query_cmd, MAX_QUERY_CMD, query_tpl, pass_col_escaped, scheme_col_escaped, table_escaped, user_col_escaped, username_escaped);
 
 	free(user_col_escaped); user_col_escaped = NULL;
 	free(pass_col_escaped); pass_col_escaped = NULL;
+	free(scheme_col_escaped); scheme_col_escaped = NULL;
 	free(table_escaped); table_escaped = NULL;
 	free(username_escaped); username_escaped = NULL;
 
 	/* execute the query */
 	pg_result = PQexec(pg_conn, query_cmd);
 	switch (pg_result_status = PQresultStatus(pg_result)) {
-		case PGRES_TUPLES_OK:	/* this what we want. we got back some data */
+		case PGRES_TUPLES_OK:	/* this is what we want. we got back some data */
 			pg_numrows = PQntuples(pg_result);
 			if (pg_numrows < 1) {
 				syslog(LOG_ERR, "postgresql command have returned no rows!\n");
@@ -101,7 +105,20 @@ char		*username_escaped = NULL;
 				syslog(LOG_ERR, "postgresql command have returned more than one rows!\n");
 				return;
 			}
+			/* write the queried password to the 'password' variable */
 			strlcpy(password, PQgetvalue(pg_result, 0, 0), MAX_PASSWORD);
+
+
+			if (	PQgetlength(pg_result, 0, 1) == 0  ||
+				PQgetisnull(pg_result, 0, 1) ) {
+
+				/* if the field is empty or NULL, we use the globally
+				 * defined digest_alg from the configuration file ...
+				 */
+			} else {
+				/* ... else, write the queried scheme to the 'digest_alg' variable */
+				strlcpy(digest_alg, PQgetvalue(pg_result, 0, 1), MAX_PARAM);
+			}
 
 			break;
 		case PGRES_COMMAND_OK:
