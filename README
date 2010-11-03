@@ -23,6 +23,7 @@ pgsql_dbconnection=
 pgsql_table=
 pgsql_user_col=
 pgsql_pass_col=
+pgsql_scheme_col=
 
 MySQL specific options:
 mysql_host=
@@ -33,6 +34,7 @@ mysql_pass=
 mysql_table=
 mysql_user_col=
 mysql_pass_col=
+mysql_scheme_col=
 mysql_key=
 mysql_cert=
 mysql_ca=
