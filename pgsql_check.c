@@ -36,7 +36,7 @@ void pgsql_check(const char *got_username, char password[], char digest_alg[], p
 PGconn		*pg_conn = NULL;
 
 PGresult	*pg_result = NULL;
-ExecStatusType	pg_result_status = 0;
+ExecStatusType	pg_result_status;
 
 int		pg_numrows = 0;
 
