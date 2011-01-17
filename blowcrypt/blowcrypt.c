@@ -43,6 +43,7 @@ int		fd = -1;
 ssize_t		ret = 0;
 size_t		password_size = 16, pos = 0;
 
+char		malloc_password = 0;
 char		echo_password = 0;
 
 
@@ -105,6 +106,8 @@ char		echo_password = 0;
 			}
 		}
 		password[(int)pos] = '\0';
+
+		malloc_password = 1;
 	}
 
 
@@ -128,7 +131,10 @@ char		echo_password = 0;
 
 	/* Display */
 	printf("%s\n", blowfish);
-	free(password); password = NULL;
+
+	if (malloc_password) {
+		free(password); password = NULL;
+	}
 
 
 	return(EXIT_SUCCESS);
