@@ -17,7 +17,7 @@
 .\"ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 .\"(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 .\"SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-.Dd $Mdocdate: Sep 13 2010 $
+.Dd Sep 13, 2010
 .Dt LOGIN_SQL 8
 .Os
 .Sh NAME
@@ -47,7 +47,7 @@ The
 .Ar service
 argument specifies which protocol to use with the
 invoking program.
-.Sh LOGIN.CONF VARIABLES
+.Ss LOGIN.CONF VARIABLES
 The
 .Nm
 utility uses only the following
@@ -58,7 +58,7 @@ variable:
 .It Cm x-sql-cfg_file
 Specifies the path name for the configuration file. If you omit this variable, then the default configuration file will be used.
 .El
-.Sh CONFIGURATION FILE
+.Ss CONFIGURATION FILE
 The configuration file ignores any line which doesn't start with a recognized configuration option. Options are in the form of
 .Em option=value.
 The following is a list of the usable options.
@@ -170,7 +170,7 @@ and
 .It Pa /etc/login_sql.conf
 Default configuration file
 .El
-.Sh EXAMPLE CONFIGURATION FILE
+.Ss EXAMPLE CONFIGURATION FILE
 .Bd -literal
 pgsql_dbconnection=dbname=superdb user=jester password=s3cr3t
 pgsql_table=login_info
@@ -188,6 +188,11 @@ mysql_pass_col=pass
 
 digest_alg=sha256
 .Ed
+.Sh AUTHOR
+.Nm
+was written by
+.An Daniel LEVAI
+<leva@ecentrum.hu>.
 .Sh SEE ALSO
 .Xr login 1 ,
 .Xr su 1 ,
