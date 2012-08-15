@@ -136,9 +136,7 @@ http://dev.mysql.com/doc/refman/5.1/en/mysql-ssl-set.html
 options:
 .Bl -tag -offset ||| -width |
 .It Cm digest_alg
-The message digest or encryption algorithm to use with the user supplied password. This will be the default, if no
-.Ql {digest}
-prefix is prepended before the password string in the password column. If the query returns a strings which is prefixed with something between curly brackets, then that digest or encryption algorithm will be used instead of the default.
+The message digest or encryption algorithm to use with the user supplied password. This will be the default, which can be overridden with a scheme column in the database table (see MySQL or PostgreSQL options above).
 .Pp
 You can use any digest which is supported by your OpenSSL library. For more information, enter
 .Dl openssl dgst -h
