@@ -8,7 +8,7 @@
 #include <string.h>
 #include <syslog.h>
 
-#define		LOGIN_SQL_VERSION	"1.2"
+#define		LOGIN_SQL_VERSION	"1.3-dev"
 
 int		malloc_check(void *);
 
