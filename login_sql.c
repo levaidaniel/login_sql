@@ -35,9 +35,6 @@
 #include "login_sql.h"
 
 
-char	*config_file = NULL;
-
-
 int main(int argc, char *argv[])
 {
 struct		rlimit rl;
@@ -48,6 +45,7 @@ int		mode = 0, c, count = 0;
 char		response[MAX_PASSWORD];
 int		sql_check_ret = EXIT_FAILURE;
 char		*class = NULL, *username = NULL, *password = NULL;
+char		*config_file = NULL;
 
 
 	rl.rlim_cur = 0;
@@ -143,7 +141,7 @@ char		*class = NULL, *username = NULL, *password = NULL;
 	login_close(lc);
 
 	/* check against postgresql */
-	sql_check_ret = sql_check(username, password);
+	sql_check_ret = sql_check(username, password, config_file);
 	if (sql_check_ret == EXIT_SUCCESS) {
 		fprintf(back, BI_AUTH "\n");
 		syslog(LOG_NOTICE, "authorize ok for %s\n", username);

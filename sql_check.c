@@ -41,10 +41,7 @@
 #include <openssl/evp.h>
 
 
-extern char	*config_file;
-
-
-int sql_check(const char *got_username, const char *got_password)
+int sql_check(const char *got_username, const char *got_password, const char *config_file)
 {
 FILE		*cfg_file_stream = NULL;
 char		cfg_input_str[MAX_CFG_LINE];

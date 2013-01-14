@@ -31,9 +31,6 @@
 #include "mysql_check.h"
 
 
-extern char	*config_file;
-
-
 void mysql_check(const char *got_username, char password[], char digest_alg[], mysql_connection *mysql_conn)
 {
 MYSQL		mysql;
