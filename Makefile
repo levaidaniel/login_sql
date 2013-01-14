@@ -20,7 +20,7 @@ SRCS +=		mysql_check.c
 .endif
 
 
-CFLAGS +=	-Wall
+CFLAGS +=	-pedantic -Wall -g
 .ifdef PGSQL_BACKEND
 CFLAGS +=	-I`pg_config --includedir` `pg_config --cflags` -D_PGSQL_BACKEND
 .endif
@@ -29,7 +29,7 @@ CFLAGS +=	`mysql_config --cflags` -D_MYSQL_BACKEND
 .endif
 
 
-LDADD +=	-lcrypto -lssl -lcom_err
+LDADD +=	-lcrypto
 .ifdef PGSQL_BACKEND
 LDADD +=	-L`pg_config --libdir`
 LDADD +=	-lpq `pg_config --libs`
