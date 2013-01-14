@@ -31,20 +31,22 @@
 #include "mysql_check.h"
 
 
-void mysql_check(const char *got_username, char password[], char digest_alg[], mysql_connection *mysql_conn)
+void
+mysql_check(const char *got_username, char password[],
+		char digest_alg[], mysql_connection *mysql_conn)
 {
-MYSQL		mysql;
-MYSQL_RES	*mysql_result = NULL;
-MYSQL_ROW	mysql_row;
-my_ulonglong	mysql_numrows = 0;
-unsigned long	*mysql_lengths = NULL;
+	MYSQL		mysql;
+	MYSQL_RES	*mysql_result = NULL;
+	MYSQL_ROW	mysql_row;
+	my_ulonglong	mysql_numrows = 0;
+	unsigned long	*mysql_lengths = NULL;
 
-char		*user_col_escaped = NULL, *pass_col_escaped = NULL, *scheme_col_escaped = NULL, *table_escaped = NULL;
-const char	*query_tpl = "SELECT %s, %s FROM %s WHERE %s = '%s'";
-char		query_cmd[MAX_QUERY_CMD] = "";
+	char		*user_col_escaped = NULL, *pass_col_escaped = NULL, *scheme_col_escaped = NULL, *table_escaped = NULL;
+	const char	*query_tpl = "SELECT %s, %s FROM %s WHERE %s = '%s'";
+	char		query_cmd[MAX_QUERY_CMD] = "";
 
-char		username[MAX_USERNAME] = "";
-char		*username_escaped = NULL;
+	char		username[MAX_USERNAME] = "";
+	char		*username_escaped = NULL;
 
 
 	mysql_init(&mysql);

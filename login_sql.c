@@ -35,17 +35,18 @@
 #include "login_sql.h"
 
 
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
-struct		rlimit rl;
-login_cap_t	*lc = NULL;
+	struct		rlimit rl;
+	login_cap_t	*lc = NULL;
 
-FILE		*back = NULL;
-int		mode = 0, c, count = 0;
-char		response[MAX_PASSWORD];
-int		sql_check_ret = EXIT_FAILURE;
-char		*class = NULL, *username = NULL, *password = NULL;
-char		*config_file = NULL;
+	FILE		*back = NULL;
+	int		mode = 0, c, count = 0;
+	char		response[MAX_PASSWORD];
+	int		sql_check_ret = EXIT_FAILURE;
+	char		*class = NULL, *username = NULL, *password = NULL;
+	char		*config_file = NULL;
 
 
 	rl.rlim_cur = 0;
@@ -160,4 +161,4 @@ char		*config_file = NULL;
 
 	closelog();
 	return(AUTH_FAILED);
-} /* main */
+} /* main() */

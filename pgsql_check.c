@@ -31,21 +31,23 @@
 #include "pgsql_check.h"
 
 
-void pgsql_check(const char *got_username, char password[], char digest_alg[], pgsql_connection *pgsql_conn)
+void
+pgsql_check(const char *got_username, char password[],
+		char digest_alg[], pgsql_connection *pgsql_conn)
 {
-PGconn		*pg_conn = NULL;
+	PGconn		*pg_conn = NULL;
 
-PGresult	*pg_result = NULL;
-ExecStatusType	pg_result_status;
+	PGresult	*pg_result = NULL;
+	ExecStatusType	pg_result_status;
 
-int		pg_numrows = 0;
+	int		pg_numrows = 0;
 
-char		*user_col_escaped = NULL, *pass_col_escaped = NULL, *scheme_col_escaped = NULL, *table_escaped = NULL;
-const char	*query_tpl = "SELECT %s, %s FROM %s WHERE %s = '%s';";
-char		query_cmd[MAX_QUERY_CMD] = "";
+	char		*user_col_escaped = NULL, *pass_col_escaped = NULL, *scheme_col_escaped = NULL, *table_escaped = NULL;
+	const char	*query_tpl = "SELECT %s, %s FROM %s WHERE %s = '%s';";
+	char		query_cmd[MAX_QUERY_CMD] = "";
 
-char		username[MAX_USERNAME] = "";
-char		*username_escaped = NULL;
+	char		username[MAX_USERNAME] = "";
+	char		*username_escaped = NULL;
 
 
 

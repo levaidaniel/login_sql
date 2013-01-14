@@ -41,57 +41,59 @@
 #include <openssl/evp.h>
 
 
-int sql_check(const char *got_username, const char *got_password, const char *config_file)
+int
+sql_check(const char *got_username, const char *got_password,
+		const char *config_file)
 {
-FILE		*cfg_file_stream = NULL;
-char		cfg_input_str[MAX_CFG_LINE];
-int		cfg_file_error = 0;
+	FILE		*cfg_file_stream = NULL;
+	char		cfg_input_str[MAX_CFG_LINE];
+	int		cfg_file_error = 0;
 
 #ifdef _PGSQL_BACKEND
-pgsql_connection	pgsql_conn = {
-	"",	/* dbconnection */
-	"",	/* table */
-	"",	/* user_col */
-	"",	/* pass_col */
-	"",	/* host */
-	""	/* db */
-};
+	pgsql_connection	pgsql_conn = {
+		"",	/* dbconnection */
+		"",	/* table */
+		"",	/* user_col */
+		"",	/* pass_col */
+		"",	/* host */
+		""	/* db */
+	};
 
-char		*where_str = NULL;	/* for the parameter searching */
+	char		*where_str = NULL;	/* for the parameter searching */
 #endif
 #ifdef _MYSQL_BACKEND
-mysql_connection	mysql_conn = {
-	"",	/* host */
-	"",	/* socket */
-	0,	/* port */
-	"",	/* db */
-	"",	/* user */
-	"",	/* pass */
-	"",	/* table */
-	"",	/* user_col */
-	"",	/* pass_col */
-	"",	/* key */
-	"",	/* cert */
-	"",	/* ca */
-	"",	/* capath */
-	""	/* cipher */
-};
+	mysql_connection	mysql_conn = {
+		"",	/* host */
+		"",	/* socket */
+		0,	/* port */
+		"",	/* db */
+		"",	/* user */
+		"",	/* pass */
+		"",	/* table */
+		"",	/* user_col */
+		"",	/* pass_col */
+		"",	/* key */
+		"",	/* cert */
+		"",	/* ca */
+		"",	/* capath */
+		""	/* cipher */
+	};
 #endif
 
-char		digest_alg[MAX_PARAM] = "";
-char		sql_backend[MAX_PARAM] = "";
+	char		digest_alg[MAX_PARAM] = "";
+	char		sql_backend[MAX_PARAM] = "";
 
-char		password[MAX_PASSWORD] = "";	/* the db specific functions will (over)write the password to this variable */
+	char		password[MAX_PASSWORD] = "";	/* the db specific functions will (over)write the password to this variable */
 
-char		salt[BLOWFISH_SALT_LEN + 1] = "";	/* to use with crypt() */
+	char		salt[BLOWFISH_SALT_LEN + 1] = "";	/* to use with crypt() */
 
-/* OpenSSL stuff for the message digest algorithms */
-EVP_MD_CTX	mdctx;
-const EVP_MD	*md = NULL;
-unsigned char	got_password_digest[EVP_MAX_MD_SIZE] = "";
-char		*got_password_digest_string = NULL;
-char		*digest_tmp = NULL;
-unsigned int	md_len = 0, i = 0, di = 0;
+	/* OpenSSL stuff for the message digest algorithms */
+	EVP_MD_CTX	mdctx;
+	const EVP_MD	*md = NULL;
+	unsigned char	got_password_digest[EVP_MAX_MD_SIZE] = "";
+	char		*got_password_digest_string = NULL;
+	char		*digest_tmp = NULL;
+	unsigned int	md_len = 0, i = 0, di = 0;
 
 
 	/* if there was no config file defined in login.conf(5), use the default filename */
