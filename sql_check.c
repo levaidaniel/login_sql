@@ -97,9 +97,9 @@ sql_check(const char *got_username, const char *got_password,
 
 
 	/* if there was no config file defined in login.conf(5), use the default filename */
-	if (!config_file) {
+	if (!config_file)
 		config_file = CFG_FILE_DEFAULT;
-	}
+
 	cfg_file_stream = fopen(config_file, "r");
 	if (cfg_file_stream == NULL ) {
 		syslog(LOG_ERR, "error opening %s: %s\n", config_file, strerror(errno));
@@ -110,12 +110,13 @@ sql_check(const char *got_username, const char *got_password,
 	while (fgets(cfg_input_str, sizeof(cfg_input_str), cfg_file_stream)) {
 		cfg_file_error = errno;
 
+		if (cfg_input_str[(int)strlen(cfg_input_str) - 1] == '\n') {		/* strip the newline */
+			cfg_input_str[(int)strlen(cfg_input_str) - 1] = '\0';
+		}
+
 #ifdef _PGSQL_BACKEND
 		if (strncmp(cfg_input_str, CFG_PARAM_PGSQL_DBCONNECTION, strlen(CFG_PARAM_PGSQL_DBCONNECTION)) == 0) {
 			strlcpy(pgsql_conn.dbconnection, cfg_input_str + (int)strlen(CFG_PARAM_PGSQL_DBCONNECTION), MAX_CFG_LINE);
-			if (pgsql_conn.dbconnection[(int)strlen(pgsql_conn.dbconnection) - 1] == '\n') {	/* strip the newline */
-				pgsql_conn.dbconnection[(int)strlen(pgsql_conn.dbconnection) - 1] = '\0';
-			}
 
 			/* Extract the dbname parameter. */
 			where_str = strstr(pgsql_conn.dbconnection, "dbname=");
@@ -138,158 +139,95 @@ sql_check(const char *got_username, const char *got_password,
 				pgsql_conn.host[(int)strcspn(pgsql_conn.host, " ")] = '\0';	/* close the string where the first space appears */
 			}
 		}
-		if (strncmp(cfg_input_str, CFG_PARAM_PGSQL_TABLE, strlen(CFG_PARAM_PGSQL_TABLE)) == 0) {
+		if (strncmp(cfg_input_str, CFG_PARAM_PGSQL_TABLE, strlen(CFG_PARAM_PGSQL_TABLE)) == 0)
 			strlcpy(pgsql_conn.table, cfg_input_str + (int)strlen(CFG_PARAM_PGSQL_TABLE), MAX_PARAM);
-			if (pgsql_conn.table[(int)strlen(pgsql_conn.table) - 1] == '\n') {	/* strip the newline */
-				pgsql_conn.table[(int)strlen(pgsql_conn.table) - 1] = '\0';
-			}
-		}
-		if (strncmp(cfg_input_str, CFG_PARAM_PGSQL_USER_COL, strlen(CFG_PARAM_PGSQL_USER_COL)) == 0) {
+
+		if (strncmp(cfg_input_str, CFG_PARAM_PGSQL_USER_COL, strlen(CFG_PARAM_PGSQL_USER_COL)) == 0)
 			strlcpy(pgsql_conn.user_col, cfg_input_str + (int)strlen(CFG_PARAM_PGSQL_USER_COL), MAX_PARAM);
-			if (pgsql_conn.user_col[(int)strlen(pgsql_conn.user_col) - 1] == '\n') {	/* strip the newline */
-				pgsql_conn.user_col[(int)strlen(pgsql_conn.user_col) - 1] = '\0';
-			}
-		}
-		if (strncmp(cfg_input_str, CFG_PARAM_PGSQL_PASS_COL, strlen(CFG_PARAM_PGSQL_PASS_COL)) == 0) {
+
+		if (strncmp(cfg_input_str, CFG_PARAM_PGSQL_PASS_COL, strlen(CFG_PARAM_PGSQL_PASS_COL)) == 0)
 			strlcpy(pgsql_conn.pass_col, cfg_input_str + (int)strlen(CFG_PARAM_PGSQL_PASS_COL), MAX_PARAM);
-			if (pgsql_conn.pass_col[(int)strlen(pgsql_conn.pass_col) - 1] == '\n') {	/* strip the newline */
-				pgsql_conn.pass_col[(int)strlen(pgsql_conn.pass_col) - 1] = '\0';
-			}
-		}
-		if (strncmp(cfg_input_str, CFG_PARAM_PGSQL_SCHEME_COL, strlen(CFG_PARAM_PGSQL_SCHEME_COL)) == 0) {
+
+		if (strncmp(cfg_input_str, CFG_PARAM_PGSQL_SCHEME_COL, strlen(CFG_PARAM_PGSQL_SCHEME_COL)) == 0)
 			strlcpy(pgsql_conn.scheme_col, cfg_input_str + (int)strlen(CFG_PARAM_PGSQL_SCHEME_COL), MAX_PARAM);
-			if (pgsql_conn.scheme_col[(int)strlen(pgsql_conn.scheme_col) - 1] == '\n') {	/* strip the newline */
-				pgsql_conn.scheme_col[(int)strlen(pgsql_conn.scheme_col) - 1] = '\0';
-			}
-		}
+
 #endif
 #ifdef _MYSQL_BACKEND
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_HOST, strlen(CFG_PARAM_MYSQL_HOST)) == 0) {
+		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_HOST, strlen(CFG_PARAM_MYSQL_HOST)) == 0)
 			strlcpy(mysql_conn.host, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_HOST), MAX_PARAM);
-			if (mysql_conn.host[(int)strlen(mysql_conn.host) - 1] == '\n') {	/* strip the newline */
-				mysql_conn.host[(int)strlen(mysql_conn.host) - 1] = '\0';
-			}
-		}
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_PORT, strlen(CFG_PARAM_MYSQL_PORT)) == 0) {
-			sscanf(cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_PORT), "%d", &mysql_conn.port);
-		}
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_DB, strlen(CFG_PARAM_MYSQL_DB)) == 0) {
+
+		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_PORT, strlen(CFG_PARAM_MYSQL_PORT)) == 0)
+			sscanf(cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_PORT), "%u", &mysql_conn.port);
+
+		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_DB, strlen(CFG_PARAM_MYSQL_DB)) == 0)
 			strlcpy(mysql_conn.db, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_DB), MAX_PARAM);
-			if (mysql_conn.db[(int)strlen(mysql_conn.db) - 1] == '\n') {	/* strip the newline */
-				mysql_conn.db[(int)strlen(mysql_conn.db) - 1] = '\0';
-			}
-		}
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_USER, strlen(CFG_PARAM_MYSQL_USER)) == 0) {
+
+		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_USER, strlen(CFG_PARAM_MYSQL_USER)) == 0)
 			strlcpy(mysql_conn.user, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_USER), MAX_PARAM);
-			if (mysql_conn.user[(int)strlen(mysql_conn.user) - 1] == '\n') {	/* strip the newline */
-				mysql_conn.user[(int)strlen(mysql_conn.user) - 1] = '\0';
-			}
-		}
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_PASS, strlen(CFG_PARAM_MYSQL_PASS)) == 0) {
+
+		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_PASS, strlen(CFG_PARAM_MYSQL_PASS)) == 0)
 			strlcpy(mysql_conn.pass, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_PASS), MAX_PARAM);
-			if (mysql_conn.pass[(int)strlen(mysql_conn.pass) - 1] == '\n') {	/* strip the newline */
-				mysql_conn.pass[(int)strlen(mysql_conn.pass) - 1] = '\0';
-			}
-		}
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_TABLE, strlen(CFG_PARAM_MYSQL_TABLE)) == 0) {
+
+		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_TABLE, strlen(CFG_PARAM_MYSQL_TABLE)) == 0)
 			strlcpy(mysql_conn.table, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_TABLE), MAX_PARAM);
-			if (mysql_conn.table[(int)strlen(mysql_conn.table) - 1] == '\n') {	/* strip the newline */
-				mysql_conn.table[(int)strlen(mysql_conn.table) - 1] = '\0';
-			}
-		}
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_USER_COL, strlen(CFG_PARAM_MYSQL_USER_COL)) == 0) {
+
+		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_USER_COL, strlen(CFG_PARAM_MYSQL_USER_COL)) == 0)
 			strlcpy(mysql_conn.user_col, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_USER_COL), MAX_PARAM);
-			if (mysql_conn.user_col[(int)strlen(mysql_conn.user_col) - 1] == '\n') {	/* strip the newline */
-				mysql_conn.user_col[(int)strlen(mysql_conn.user_col) - 1] = '\0';
-			}
-		}
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_PASS_COL, strlen(CFG_PARAM_MYSQL_PASS_COL)) == 0) {
+
+		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_PASS_COL, strlen(CFG_PARAM_MYSQL_PASS_COL)) == 0)
 			strlcpy(mysql_conn.pass_col, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_PASS_COL), MAX_PARAM);
-			if (mysql_conn.pass_col[(int)strlen(mysql_conn.pass_col) - 1] == '\n') {	/* strip the newline */
-				mysql_conn.pass_col[(int)strlen(mysql_conn.pass_col) - 1] = '\0';
-			}
-		}
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_SCHEME_COL, strlen(CFG_PARAM_MYSQL_SCHEME_COL)) == 0) {
+
+		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_SCHEME_COL, strlen(CFG_PARAM_MYSQL_SCHEME_COL)) == 0)
 			strlcpy(mysql_conn.scheme_col, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_SCHEME_COL), MAX_PARAM);
-			if (mysql_conn.scheme_col[(int)strlen(mysql_conn.scheme_col) - 1] == '\n') {	/* strip the newline */
-				mysql_conn.scheme_col[(int)strlen(mysql_conn.scheme_col) - 1] = '\0';
-			}
-		}
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_KEY, strlen(CFG_PARAM_MYSQL_KEY)) == 0) {
+
+		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_KEY, strlen(CFG_PARAM_MYSQL_KEY)) == 0)
 			strlcpy(mysql_conn.key, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_KEY), MAX_PARAM);
-			if (mysql_conn.key[(int)strlen(mysql_conn.key) - 1] == '\n') {	/* strip the newline */
-				mysql_conn.key[(int)strlen(mysql_conn.key) - 1] = '\0';
-			}
-		}
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_CERT, strlen(CFG_PARAM_MYSQL_CERT)) == 0) {
+
+		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_CERT, strlen(CFG_PARAM_MYSQL_CERT)) == 0)
 			strlcpy(mysql_conn.cert, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_CERT), MAX_PARAM);
-			if (mysql_conn.cert[(int)strlen(mysql_conn.cert) - 1] == '\n') {	/* strip the newline */
-				mysql_conn.cert[(int)strlen(mysql_conn.cert) - 1] = '\0';
-			}
-		}
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_CA, strlen(CFG_PARAM_MYSQL_CA)) == 0) {
+
+		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_CA, strlen(CFG_PARAM_MYSQL_CA)) == 0)
 			strlcpy(mysql_conn.ca, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_CA), MAX_PARAM);
-			if (mysql_conn.ca[(int)strlen(mysql_conn.ca) - 1] == '\n') {	/* strip the newline */
-				mysql_conn.ca[(int)strlen(mysql_conn.ca) - 1] = '\0';
-			}
-		}
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_CAPATH, strlen(CFG_PARAM_MYSQL_CAPATH)) == 0) {
+
+		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_CAPATH, strlen(CFG_PARAM_MYSQL_CAPATH)) == 0)
 			strlcpy(mysql_conn.capath, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_CAPATH), MAX_PARAM);
-			if (mysql_conn.capath[(int)strlen(mysql_conn.capath) - 1] == '\n') {	/* strip the newline */
-				mysql_conn.capath[(int)strlen(mysql_conn.capath) - 1] = '\0';
-			}
-		}
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_CIPHER, strlen(CFG_PARAM_MYSQL_CIPHER)) == 0) {
+
+		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_CIPHER, strlen(CFG_PARAM_MYSQL_CIPHER)) == 0)
 			strlcpy(mysql_conn.cipher, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_CIPHER), MAX_PARAM);
-			if (mysql_conn.cipher[(int)strlen(mysql_conn.cipher) - 1] == '\n') {	/* strip the newline */
-				mysql_conn.cipher[(int)strlen(mysql_conn.cipher) - 1] = '\0';
-			}
-		}
+
 #endif
 		if (strncmp(cfg_input_str, CFG_PARAM_DIGEST_ALG, strlen(CFG_PARAM_DIGEST_ALG)) == 0) {
 			strlcpy(digest_alg, cfg_input_str + (int)strlen(CFG_PARAM_DIGEST_ALG), (size_t)MAX_PARAM);
-			if (digest_alg[(int)strlen(digest_alg) - 1] == '\n') {	/* strip the newline */
-				digest_alg[(int)strlen(digest_alg) - 1] = '\0';
-			}
 			for (i=0; i < strlen(digest_alg); i++) {
 				digest_alg[i] = (char)tolower(digest_alg[i]);
 			}
 		}
 
-		if (strncmp(cfg_input_str, CFG_PARAM_SQL_BACKEND, strlen(CFG_PARAM_SQL_BACKEND)) == 0) {
+		if (strncmp(cfg_input_str, CFG_PARAM_SQL_BACKEND, strlen(CFG_PARAM_SQL_BACKEND)) == 0)
 			strlcpy(sql_backend, cfg_input_str + (int)strlen(CFG_PARAM_SQL_BACKEND), MAX_PARAM);
-			if (sql_backend[(int)strlen(sql_backend) - 1] == '\n') {	/* strip the newline */
-				sql_backend[(int)strlen(sql_backend) - 1] = '\0';
-			}
-		}
 	}
 	/* error checkings of the file descriptor */
 	if (ferror(cfg_file_stream) != 0) {
 		syslog(LOG_ERR, "error while reading config file: %s\n", strerror(cfg_file_error));
 		return(EXIT_FAILURE);
 	}
-	if(fclose(cfg_file_stream) != 0) {
+	if(fclose(cfg_file_stream) != 0)
 		syslog(LOG_ERR, "error closing config file: %s\n", strerror(errno));
-	}
 
 
 	/* we write the queried password to the 'password' variable
 	 * in one of the following database specific functions */
-	if (strncmp(sql_backend, "pgsql", strlen("pgsql")) == 0) {
 #ifdef _PGSQL_BACKEND
+	if (strncmp(sql_backend, "pgsql", strlen("pgsql")) == 0)
 		pgsql_check(got_username, password, digest_alg, &pgsql_conn);
-#else
-		syslog(LOG_ERR, "invalid sql backend: %s", sql_backend);
+	else
 #endif
-	} else if (strncmp(sql_backend, "mysql", strlen("mysql")) == 0) {
 #ifdef _MYSQL_BACKEND
+	if (strncmp(sql_backend, "mysql", strlen("mysql")) == 0)
 		mysql_check(got_username, password, digest_alg, &mysql_conn);
-#else
-		syslog(LOG_ERR, "invalid sql backend: %s", sql_backend);
+	else
 #endif
-	} else {
 		syslog(LOG_ERR, "invalid sql backend: %s", sql_backend);
-	}
 
 
 	/* apply the appropriate crypt/hash method */
@@ -362,10 +300,10 @@ sql_check(const char *got_username, const char *got_password,
 
 	/* compare the compiled message digest and the queried one */
 	if (strcmp(password, got_password_digest_string) == 0) {
-		//free(got_password_digest_string); got_password_digest_string = NULL
+		/* free(got_password_digest_string); got_password_digest_string = NULL; */
 		return(EXIT_SUCCESS);
 	} else {
-		//free(got_password_digest_string); got_password_digest_string = NULL
+		/* free(got_password_digest_string); got_password_digest_string = NULL; */
 		return(EXIT_FAILURE);
 	}
 } /* int sql_check() */
