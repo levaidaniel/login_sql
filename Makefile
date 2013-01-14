@@ -18,6 +18,9 @@ SRCS +=		pgsql_check.c
 .ifdef MYSQL_BACKEND
 SRCS +=		mysql_check.c
 .endif
+.ifdef SQLITE_BACKEND
+SRCS +=		sqlite_check.c
+.endif
 
 
 CFLAGS +=	-pedantic -Wall -g
@@ -26,6 +29,9 @@ CFLAGS +=	-I`pg_config --includedir` `pg_config --cflags` -D_PGSQL_BACKEND
 .endif
 .ifdef MYSQL_BACKEND
 CFLAGS +=	`mysql_config --cflags` -D_MYSQL_BACKEND
+.endif
+.ifdef SQLITE_BACKEND
+CFLAGS +=	-D_SQLITE_BACKEND
 .endif
 
 
@@ -36,6 +42,9 @@ LDADD +=	-lpq `pg_config --libs`
 .endif
 .ifdef MYSQL_BACKEND
 LDADD +=	`mysql_config --libs`
+.endif
+.ifdef SQLITE_BACKEND
+LDADD +=	-lsqlite3
 .endif
 
 

@@ -33,6 +33,10 @@
 #include "mysql_check.h"
 #endif
 
+#ifdef _SQLITE_BACKEND
+#include "sqlite_check.h"
+#endif
+
 
 #include <unistd.h>
 #include <ctype.h>
@@ -78,6 +82,9 @@ sql_check(const char *got_username, const char *got_password,
 		"",	/* capath */
 		""	/* cipher */
 	};
+#endif
+#ifdef _SQLITE_BACKEND
+	/* TODO */
 #endif
 
 	char		digest_alg[MAX_PARAM] = "";
@@ -196,6 +203,9 @@ sql_check(const char *got_username, const char *got_password,
 			strlcpy(mysql_conn.cipher, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_CIPHER), MAX_PARAM);
 
 #endif
+#ifdef _SQLITE_BACKEND
+	/* TODO */
+#endif
 		if (strncmp(cfg_input_str, CFG_PARAM_DIGEST_ALG, strlen(CFG_PARAM_DIGEST_ALG)) == 0) {
 			strlcpy(digest_alg, cfg_input_str + (int)strlen(CFG_PARAM_DIGEST_ALG), (size_t)MAX_PARAM);
 			for (i=0; i < strlen(digest_alg); i++) {
@@ -226,6 +236,9 @@ sql_check(const char *got_username, const char *got_password,
 	if (strncmp(sql_backend, "mysql", strlen("mysql")) == 0)
 		mysql_check(got_username, password, digest_alg, &mysql_conn);
 	else
+#endif
+#ifdef _SQLITE_BACKEND
+	/* TODO */
 #endif
 		syslog(LOG_ERR, "invalid sql backend: %s", sql_backend);
 
