@@ -22,7 +22,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifdef MYSQL_BACKEND
+#ifdef _MYSQL_BACKEND
 
 #include <mysql.h>
 

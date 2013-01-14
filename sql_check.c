@@ -25,11 +25,11 @@
 #include "common.h"
 #include "sql_check.h"
 
-#ifdef PGSQL_BACKEND
+#ifdef _PGSQL_BACKEND
 #include "pgsql_check.h"
 #endif
 
-#ifdef MYSQL_BACKEND
+#ifdef _MYSQL_BACKEND
 #include "mysql_check.h"
 #endif
 
@@ -50,7 +50,7 @@ FILE		*cfg_file_stream = NULL;
 char		cfg_input_str[MAX_CFG_LINE];
 int		cfg_file_error = 0;
 
-#ifdef PGSQL_BACKEND
+#ifdef _PGSQL_BACKEND
 pgsql_connection	pgsql_conn = {
 	"",	/* dbconnection */
 	"",	/* table */
@@ -62,7 +62,7 @@ pgsql_connection	pgsql_conn = {
 
 char		*where_str = NULL;	/* for the parameter searching */
 #endif
-#ifdef MYSQL_BACKEND
+#ifdef _MYSQL_BACKEND
 mysql_connection	mysql_conn = {
 	"",	/* host */
 	"",	/* socket */
@@ -111,7 +111,7 @@ unsigned int	md_len = 0, i = 0, di = 0;
 	while (fgets(cfg_input_str, sizeof(cfg_input_str), cfg_file_stream)) {
 		cfg_file_error = errno;
 
-#ifdef PGSQL_BACKEND
+#ifdef _PGSQL_BACKEND
 		if (strncmp(cfg_input_str, CFG_PARAM_PGSQL_DBCONNECTION, strlen(CFG_PARAM_PGSQL_DBCONNECTION)) == 0) {
 			strlcpy(pgsql_conn.dbconnection, cfg_input_str + (int)strlen(CFG_PARAM_PGSQL_DBCONNECTION), MAX_CFG_LINE);
 			if (pgsql_conn.dbconnection[(int)strlen(pgsql_conn.dbconnection) - 1] == '\n') {	/* strip the newline */
@@ -164,7 +164,7 @@ unsigned int	md_len = 0, i = 0, di = 0;
 			}
 		}
 #endif
-#ifdef MYSQL_BACKEND
+#ifdef _MYSQL_BACKEND
 		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_HOST, strlen(CFG_PARAM_MYSQL_HOST)) == 0) {
 			strlcpy(mysql_conn.host, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_HOST), MAX_PARAM);
 			if (mysql_conn.host[(int)strlen(mysql_conn.host) - 1] == '\n') {	/* strip the newline */
@@ -277,13 +277,13 @@ unsigned int	md_len = 0, i = 0, di = 0;
 	/* we write the queried password to the 'password' variable
 	 * in one of the following database specific functions */
 	if (strncmp(sql_backend, "pgsql", strlen("pgsql")) == 0) {
-#ifdef PGSQL_BACKEND
+#ifdef _PGSQL_BACKEND
 		pgsql_check(got_username, password, digest_alg, &pgsql_conn);
 #else
 		syslog(LOG_ERR, "invalid sql backend: %s", sql_backend);
 #endif
 	} else if (strncmp(sql_backend, "mysql", strlen("mysql")) == 0) {
-#ifdef MYSQL_BACKEND
+#ifdef _MYSQL_BACKEND
 		mysql_check(got_username, password, digest_alg, &mysql_conn);
 #else
 		syslog(LOG_ERR, "invalid sql backend: %s", sql_backend);

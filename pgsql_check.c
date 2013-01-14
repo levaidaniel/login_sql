@@ -22,7 +22,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifdef PGSQL_BACKEND
+#ifdef _PGSQL_BACKEND
 
 #include <libpq-fe.h>
 

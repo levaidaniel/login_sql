@@ -1,60 +1,43 @@
-LOCALBASE?=	/usr/local
+LOCALBASE ?=	/usr/local
 
-BINOWN=		root
-BINGRP=		auth
-BINDIR=		${LOCALBASE}/libexec/auth
-PROG=		login_sql
+BINGRP =	auth
+BINDIR =	${LOCALBASE}/libexec/auth
+PROG =		login_sql
 
-MANDIR=		${LOCALBASE}/man/cat
-MAN=		login_sql.8
+MANDIR =	${LOCALBASE}/man/cat
+MAN =		login_sql.8
 
-DOCOWN=		root
-DOCGRP=		bin
-DOCDIR=		${LOCALBASE}/share/doc/login_sql
-DOC=		README
+DOCDIR =	${LOCALBASE}/share/doc/login_sql
+DOC =		README
 
 
-SUBDIR+=	blowcrypt
-
-PGSQL_BACKEND?=
-MYSQL_BACKEND?=
-
-SRCS=		login_sql.c sql_check.c malloc_check.c
-.if ${PGSQL_BACKEND:L:My} || ${PGSQL_BACKEND:L:Myes}
-SRCS+=		pgsql_check.c
+SRCS =		login_sql.c sql_check.c malloc_check.c
+.ifdef PGSQL_BACKEND
+SRCS +=		pgsql_check.c
 .endif
-.if ${MYSQL_BACKEND:L:My} || ${MYSQL_BACKEND:L:Myes}
-SRCS+=		mysql_check.c
-.endif
-
-CFLAGS+=	-Wall
-
-LDADD+=		-lcrypto -lssl -lcom_err
-
-.if ${PGSQL_BACKEND:L:My} || ${PGSQL_BACKEND:L:Myes}
-CFLAGS+=	-I`pg_config --includedir` `pg_config --cflags` -DPGSQL_BACKEND
-.endif
-.if ${PGSQL_BACKEND:L:My} || ${PGSQL_BACKEND:L:Myes}
-LDADD+=		-L`pg_config --libdir`
-LDADD+=		-lpq `pg_config --libs`
-.endif
-
-.if ${MYSQL_BACKEND:L:My} || ${MYSQL_BACKEND:L:Myes}
-CFLAGS+=	`mysql_config --cflags` -DMYSQL_BACKEND
-.endif
-.if ${MYSQL_BACKEND:L:My} || ${MYSQL_BACKEND:L:Myes}
-LDADD+=		`mysql_config --libs`
+.ifdef MYSQL_BACKEND
+SRCS +=		mysql_check.c
 .endif
 
 
-CLEANFILES+=	*.cat[0-9]
+CFLAGS +=	-Wall
+.ifdef PGSQL_BACKEND
+CFLAGS +=	-I`pg_config --includedir` `pg_config --cflags` -D_PGSQL_BACKEND
+.endif
+.ifdef MYSQL_BACKEND
+CFLAGS +=	`mysql_config --cflags` -D_MYSQL_BACKEND
+.endif
 
 
-all: ${PROG}
+LDADD +=	-lcrypto -lssl -lcom_err
+.ifdef PGSQL_BACKEND
+LDADD +=	-L`pg_config --libdir`
+LDADD +=	-lpq `pg_config --libs`
+.endif
+.ifdef MYSQL_BACKEND
+LDADD +=	`mysql_config --libs`
+.endif
 
-${PROG}: ${SRCS}
-	${CC} -o ${PROG} ${CFLAGS} ${LDADD} \
-		${SRCS}
 
 beforeinstall:
 	${INSTALL} -d -o ${BINOWN} -g ${BINGRP} -m ${DIRMODE} \
