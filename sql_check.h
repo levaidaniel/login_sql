@@ -30,6 +30,12 @@
 #define		CFG_PARAM_MYSQL_CAPATH		"mysql_capath="
 #define		CFG_PARAM_MYSQL_CIPHER		"mysql_cipher="
 
+#define		CFG_PARAM_SQLITE_DATABASE	"sqlite_database="
+#define		CFG_PARAM_SQLITE_TABLE		"sqlite_table="
+#define		CFG_PARAM_SQLITE_USER_COL	"sqlite_user_col="
+#define		CFG_PARAM_SQLITE_PASS_COL	"sqlite_pass_col="
+#define		CFG_PARAM_SQLITE_SCHEME_COL	"sqlite_scheme_col="
+
 #define		CFG_PARAM_DIGEST_ALG		"digest_alg="
 #define		CFG_PARAM_SQL_BACKEND		"sql_backend="
 

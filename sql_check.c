@@ -59,6 +59,7 @@ sql_check(const char *got_username, const char *got_password,
 		"",	/* table */
 		"",	/* user_col */
 		"",	/* pass_col */
+		"",	/* scheme_col */
 		"",	/* host */
 		""	/* db */
 	};
@@ -76,6 +77,7 @@ sql_check(const char *got_username, const char *got_password,
 		"",	/* table */
 		"",	/* user_col */
 		"",	/* pass_col */
+		"",	/* scheme_col */
 		"",	/* key */
 		"",	/* cert */
 		"",	/* ca */
@@ -84,7 +86,13 @@ sql_check(const char *got_username, const char *got_password,
 	};
 #endif
 #ifdef _SQLITE_BACKEND
-	/* TODO */
+	sqlite_connection	sqlite_conn = {
+		""	/* database */
+		""	/* table */
+		""	/* user_col */
+		""	/* pass_col */
+		""	/* scheme_col */
+	};
 #endif
 
 	char		digest_alg[MAX_PARAM] = "";
@@ -157,7 +165,6 @@ sql_check(const char *got_username, const char *got_password,
 
 		if (strncmp(cfg_input_str, CFG_PARAM_PGSQL_SCHEME_COL, strlen(CFG_PARAM_PGSQL_SCHEME_COL)) == 0)
 			strlcpy(pgsql_conn.scheme_col, cfg_input_str + (int)strlen(CFG_PARAM_PGSQL_SCHEME_COL), MAX_PARAM);
-
 #endif
 #ifdef _MYSQL_BACKEND
 		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_HOST, strlen(CFG_PARAM_MYSQL_HOST)) == 0)
@@ -201,10 +208,22 @@ sql_check(const char *got_username, const char *got_password,
 
 		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_CIPHER, strlen(CFG_PARAM_MYSQL_CIPHER)) == 0)
 			strlcpy(mysql_conn.cipher, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_CIPHER), MAX_PARAM);
-
 #endif
 #ifdef _SQLITE_BACKEND
-	/* TODO */
+		if (strncmp(cfg_input_str, CFG_PARAM_SQLITE_DATABASE, strlen(CFG_PARAM_SQLITE_DATABASE)) == 0)
+			strlcpy(sqlite_conn.database, cfg_input_str + (int)strlen(CFG_PARAM_SQLITE_DATABASE), MAX_PARAM);
+
+		if (strncmp(cfg_input_str, CFG_PARAM_SQLITE_TABLE, strlen(CFG_PARAM_SQLITE_TABLE)) == 0)
+			strlcpy(sqlite_conn.table, cfg_input_str + (int)strlen(CFG_PARAM_SQLITE_TABLE), MAX_PARAM);
+
+		if (strncmp(cfg_input_str, CFG_PARAM_SQLITE_USER_COL, strlen(CFG_PARAM_SQLITE_USER_COL)) == 0)
+			strlcpy(sqlite_conn.user_col, cfg_input_str + (int)strlen(CFG_PARAM_SQLITE_USER_COL), MAX_PARAM);
+
+		if (strncmp(cfg_input_str, CFG_PARAM_SQLITE_PASS_COL, strlen(CFG_PARAM_SQLITE_PASS_COL)) == 0)
+			strlcpy(sqlite_conn.pass_col, cfg_input_str + (int)strlen(CFG_PARAM_SQLITE_PASS_COL), MAX_PARAM);
+
+		if (strncmp(cfg_input_str, CFG_PARAM_SQLITE_SCHEME_COL, strlen(CFG_PARAM_SQLITE_SCHEME_COL)) == 0)
+			strlcpy(sqlite_conn.scheme_col, cfg_input_str + (int)strlen(CFG_PARAM_SQLITE_SCHEME_COL), MAX_PARAM);
 #endif
 		if (strncmp(cfg_input_str, CFG_PARAM_DIGEST_ALG, strlen(CFG_PARAM_DIGEST_ALG)) == 0) {
 			strlcpy(digest_alg, cfg_input_str + (int)strlen(CFG_PARAM_DIGEST_ALG), (size_t)MAX_PARAM);
@@ -238,7 +257,9 @@ sql_check(const char *got_username, const char *got_password,
 	else
 #endif
 #ifdef _SQLITE_BACKEND
-	/* TODO */
+	if (strncmp(sql_backend, "sqlite", strlen("sqlite")) == 0)
+		sqlite_check(got_username, password, digest_alg, &sqlite_conn);
+	else
 #endif
 		syslog(LOG_ERR, "invalid sql backend: %s", sql_backend);
 
