@@ -22,6 +22,6 @@ typedef struct mysql_connection {
 	char		cipher[PATH_MAX];
 } mysql_connection;
 
-void		mysql_check(const char *, char *, char *, mysql_connection *);
+void	mysql_check(const char *, char *, char *, mysql_connection *);
 
 #endif

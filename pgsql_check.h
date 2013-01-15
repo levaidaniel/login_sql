@@ -11,6 +11,6 @@ typedef struct pgsql_connection {
 	char	db[MAX_PARAM];
 } pgsql_connection;
 
-void		pgsql_check(const char *, char *, char *, pgsql_connection *);
+void	pgsql_check(const char *, char *, char *, pgsql_connection *);
 
 #endif
