@@ -4,11 +4,8 @@ BINGRP =	auth
 BINDIR =	${LOCALBASE}/libexec/auth
 PROG =		login_sql
 
-MANDIR =	${LOCALBASE}/man/cat
+MANDIR =	${LOCALBASE}/man/man
 MAN =		login_sql.8
-
-DOCDIR =	${LOCALBASE}/share/doc/login_sql
-DOC =		README
 
 
 SRCS =		login_sql.c sql_check.c malloc_check.c
@@ -53,9 +50,5 @@ beforeinstall:
 		${DESTDIR}${BINDIR}
 	${INSTALL} -d -o ${DOCOWN} -g ${DOCGRP} -m ${DIRMODE} \
 		${DESTDIR}${DOCDIR}
-
-afterinstall:
-	${INSTALL} -o ${DOCOWN} -g ${DOCGRP} -m ${DOCMODE} \
-		${DOC} ${DESTDIR}${DOCDIR}/
 
 .include <bsd.prog.mk>
