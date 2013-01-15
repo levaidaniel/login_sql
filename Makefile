@@ -48,7 +48,5 @@ LDADD +=	-lsqlite3
 beforeinstall:
 	${INSTALL} -d -o ${BINOWN} -g ${BINGRP} -m ${DIRMODE} \
 		${DESTDIR}${BINDIR}
-	${INSTALL} -d -o ${DOCOWN} -g ${DOCGRP} -m ${DIRMODE} \
-		${DESTDIR}${DOCDIR}
 
 .include <bsd.prog.mk>
