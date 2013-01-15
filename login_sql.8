@@ -24,7 +24,7 @@
 .Nm login_sql
 .Nd provides SQL authentication
 .Sh SYNOPSIS
-.Nm login_sql
+.Nm
 .Op Fl s Ar service
 .Op Fl v Ar name=value
 .Ar user
@@ -47,6 +47,14 @@ The
 .Ar service
 argument specifies which protocol to use with the
 invoking program.
+.Pp
+The auth style name is
+.Ql sql .
+You can use it after you configured a login class in
+.Xr login.conf 5
+to use this auth style, and created a configuration file for the
+.Nm
+authentication program.
 .Ss LOGIN.CONF VARIABLES
 The
 .Nm
@@ -242,9 +250,23 @@ and
 .Bl -hang -width ||||||||||||||||||||||||||||||||| -compact
 .It Pa /etc/login_sql.conf
 Default configuration file
+.It Pa /etc/login.conf
+To setup the
+.Nm
+auth style
 .El
 .Sh EXAMPLES
 .Bl -tag -width |
+.It Em login.conf :
+.Bd -literal
+sql:\e
+	:auth=sql:\e
+	:x-sql-cfg_file=/etc/login_sql.conf:\e
+	:tc=default:
+.Ed
+.Pp
+The cfg_file parameter is optional. If you omit it, the default will be used, which is
+.Pa /etc/login_sql.conf.
 .It Em A full blown configuration file (with default values) :
 .Bd -literal
 # default digest algorithm
