@@ -32,16 +32,16 @@
 .Sh DESCRIPTION
 The
 .Nm
-utility is called by
+utility (if configured) is called by
 .Xr login 1 ,
 .Xr su 1 ,
 and others to authenticate the
 .Ar user
-against an SQL database. Currently PostgreSQL and MySQL is supported.
+against an SQL database. Currently PostgreSQL, MySQL and SQLite is supported.
 .Pp
 The
 .Ar user
-argument is the login name of the user to be authenticated.
+argument is the login name of the user being authenticated.
 .Pp
 The
 .Ar service
@@ -67,11 +67,13 @@ The following is a list of the usable options.
 specific options:
 .Bl -tag -offset ||| -width |
 .It Cm pgsql_dbconnection
+(Default: dbname=login_sql host=localhost port=5432 user= password=)
+.Pp
 This is a space separated list of keyword=value pairs. Common keywords include: host, port, dbname, user, password, etc...
 .Pp
 For more information:
 .Pp
-http://www.postgresql.org/8.4/static/libpq-connect.html
+http://www.postgresql.org/docs/9.1/static/libpq-connect.html
 .Pp
 Search for PQconnectdb, and refer to the recognized parameters. Pay attention to the difference between the
 .Cm host=
@@ -79,12 +81,20 @@ and the
 .Cm hostaddr=
 options, and their meaning if they are omitted.
 .It Cm pgsql_table
+(Default: userdb)
+.Pp
 The table name in the database which contains the username and password columns.
 .It Cm pgsql_user_col
+(Default: username)
+.Pp
 The column's name which contains the username.
 .It Cm pgsql_pass_col
+(Default: password)
+.Pp
 The column's name which contains the password.
 .It Cm pgsql_scheme_col
+(Default: scheme)
+.Pp
 The column's name which contains the password scheme. This scheme overrides the global
 .Cm digest_alg.
 .El
@@ -93,50 +103,112 @@ The column's name which contains the password scheme. This scheme overrides the 
 specific options:
 .Bl -tag -offset ||| -width |
 .It Cm mysql_host
+(Default: localhost)
+.Pp
 Host name or IP address.
 .It Cm mysql_port
+(Default: 3306)
+.Pp
 Port number for a TCP/IP connection.
 .It Cm mysql_db
-Database's name which contains the user/pass.
+(Default: login_sql)
+.Pp
+The database name which contains the table with the username and password.
 .It Cm mysql_user
+(Default: )
+.Pp
 Username used for connecting to the database.
 .It Cm mysql_pass
+(Default: )
+.Pp
 Password used for connecting to the database.
 .It Cm mysql_table
-Table's name which contains the user/pass.
+(Default: userdb)
+.Pp
+The table name in the database which contains the username and password columns.
 .It Cm mysql_user_col
+(Default: username)
+.Pp
 The column's name which contains the username.
 .It Cm mysql_pass_col
+(Default: password)
+.Pp
 The column's name which contains the password.
 .It Cm mysql_scheme_col
+(Default: scheme)
+.Pp
 The column's name which contains the password scheme. This scheme overrides the global
 .Cm digest_alg.
 .It Cm mysql_key
+(Default: )
+.Pp
 Path name to the key file.
 .It Cm mysql_cert
+(Default: )
+.Pp
 Path name to the certificate file.
 .It Cm mysql_ca
+(Default: )
+.Pp
 Path name to the certificate authority file.
 .It Cm mysql_capath
+(Default: )
+.Pp
 Path name to the directory that contains trusted SSL CA certificates in pem format.
 .It Cm mysql_cipher
+(Default: )
+.Pp
 List of permissible ciphers to use for SSL encryption.
 .El
 .Bd -ragged -offset |||
 For the MySQL parameters' valid or default values please read the MySQL documentation here:
 .Pp
-http://dev.mysql.com/doc/refman/5.1/en/mysql-real-connect.html
+http://dev.mysql.com/doc/refman/5.5/en/mysql-real-connect.html
 .Pp
 For the MySQL SSL parameters' valid or default values please read the MySQL SSL documentation here:
 .Pp
-http://dev.mysql.com/doc/refman/5.1/en/mysql-ssl-set.html
+http://dev.mysql.com/doc/refman/5.5/en/mysql-ssl-set.html
 .Ed
+.Pp
+.Em SQLite
+specific options:
+.Bl -tag -offset ||| -width |
+.It Cm sqlite_database
+(Default: /etc/login_sql.sqlite)
+.Pp
+The database filename which contains the table with the username and password.
+.It Cm sqlite_table
+(Default: userdb)
+.Pp
+The table name in the database which contains the username and password columns.
+.It Cm sqlite_user_col
+(Default: username)
+.Pp
+The column's name which contains the username.
+.It Cm sqlite_pass_col
+(Default: password)
+.Pp
+The column's name which contains the password.
+.It Cm sqlite_scheme_col
+(Default: scheme)
+.Pp
+The column's name which contains the password scheme. This scheme overrides the global
+.Cm digest_alg.
+.El
 .Pp
 .Em Miscellaneous
 options:
 .Bl -tag -offset ||| -width |
 .It Cm digest_alg
-The message digest or encryption algorithm to use with the user supplied password. This will be the default, which can be overridden with a scheme column in the database table (see MySQL or PostgreSQL options above).
+(Default: sha256)
+.Pp
+The message digest or encryption algorithm to use with the user supplied password. This will be the default, which can be overridden with a
+.Cm *_scheme_col
+column in the database table (see the backend specific options above, and the
+.Em EXAMPLES
+section below). If the
+.Cm *_scheme_col
+is an empty string or NULL, then this will be used for the username in question.
 .Pp
 You can use any digest which is supported by your OpenSSL library. For more information, enter
 .Dl openssl dgst -h
@@ -144,48 +216,115 @@ on the command line.
 .Pp
 On top of that, the
 .Cm blowfish
-and the
+or the
 .Cm md5crypt
 values make use of the
 .Xr crypt 3
 function and encrypt the user supplied password with salted
-.Cm blowfish
+.Em blowfish
 or salted
-.Cm md5
+.Em md5
 encryption algorithms, respectively.
 .Pp
 The special value
 .Cm cleartext
 means that the password is stored in clear text in the database, so no hashing is necessary for the password entered.
 .It Cm sql_backend
+(Default: )
+.Pp
 The SQL backend to use for retrieving the password. Valid values are
-.Cm pgsql
+.Cm pgsql,
+.Cm mysql
 and
-.Cm mysql.
+.Cm sqlite.
 .El
 .Sh FILES
 .Bl -hang -width ||||||||||||||||||||||||||||||||| -compact
 .It Pa /etc/login_sql.conf
 Default configuration file
 .El
-.Ss EXAMPLE CONFIGURATION FILE
+.Sh EXAMPLES
+.Bl -tag -width |
+.It Em A full blown configuration file (with default values) :
 .Bd -literal
-pgsql_dbconnection=dbname=superdb user=jester password=s3cr3t
-pgsql_table=login_info
-pgsql_user_col=username
-pgsql_pass_col=pwd
-
-mysql_host=mysql.slickmachine.net
-mysql_port=12345
-mysql_db=login
-mysql_user=my_user
-mysql_pass=v1lm4
-mysql_table=authentication
-mysql_user_col=user
-mysql_pass_col=pass
-
+# default digest algorithm
 digest_alg=sha256
+
+# SQL backends. Uncomment the one you want to use:
+sql_backend=pgsql
+#sql_backend=mysql
+#sql_backend=sqlite
+
+# PostgreSQL options:
+pgsql_dbconnection=host=localhost port=5432 dbname=login_sql user= password=
+pgsql_user_col=username
+pgsql_pass_col=password
+pgsql_table=userdb
+pgsql_scheme_col=scheme
+
+# MySQL options:
+mysql_host=localhost
+mysql_port=3306
+mysql_db=login_sql
+mysql_user=
+mysql_pass=
+mysql_table=userdb
+mysql_user_col=username
+mysql_pass_col=password
+mysql_scheme_col=scheme
+
+# SQLite options:
+sqlite_database=/etc/login_sql.sqlite
+sqlite_table=userdb
+sqlite_user_col=username
+sqlite_pass_col=password
+sqlite_scheme_col=scheme
 .Ed
+.It Em Generating an sha256 hashed password with openssl(1) :
+.Bd -literal
+$ printf "s3cr3t" |openssl dgst -sha256
+(stdin)= 4e738ca5563c06cfd0018299933d58db1dd8bf97f6973dc99bf6cdc64b5550bd
+.Ed
+.Pp
+You can use this value for a password row if you use
+.Ql sha256
+for
+.Cm digest_alg .
+.It Em SQL table Ql userdb :
+.Bd -literal
+CREATE TABLE userdb (
+	username text,
+	password text,
+	scheme text,
+	comment text  -- optional, eg.: a description of a user
+);
+INSERT INTO userdb VALUES ('customer_1', 'Sup3rSecret', 'cleartext', 'The bakery next door');
+INSERT INTO userdb VALUES ('customer_2', '4e738ca5563c06cfd0018299933d58db1dd8bf97f6973dc99bf6cdc64b5550bd', '', 'Flower shop');
+.Ed
+.Pp
+The first entry uses a clear text password, and the default
+.Cm digest_alg
+in the example configuration file is overridden by the filled in
+.Ql scheme
+column.
+.Pp
+The second entry uses a hashed password, and the default
+.Cm digest_alg
+in the example configuration file is being used because of the empty
+.Ql scheme
+value.
+.It Em Disabling a user without deleting the row :
+You can invalidate a hashed password by prepending a
+.Ql *
+or a
+.Ql \!
+to the password value (or in fact any other character that is not allowed in that specific hash value).
+For a clear text password, you can change the value to an empty string or NULL, which will always fail the authentication.
+.Em Note
+that these methods will only disallow the
+.Nm
+authentication, and the user will be able to login by other mechanisms, if permitted.
+.El
 .Sh AUTHOR
 .Nm
 was written by
@@ -200,4 +339,5 @@ http://login-sql.googlecode.com
 .Xr login.conf 5 ,
 .Xr psql 1 ,
 .Xr mysql 1 ,
+.Xr sqlite3 1 ,
 .Xr openssl 1
