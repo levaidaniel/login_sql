@@ -58,11 +58,11 @@ pgsql_check(const char *got_username, char *password,
 		case CONNECTION_OK:
 			break;
 		case CONNECTION_BAD:
-			syslog(LOG_ERR, "pgsql: connection is not complete to %s(%s)!\n\t%s\n", PQerrorMessage(pg_conn));
+			syslog(LOG_ERR, "pgsql: connection is not complete to %s(%s)!\n\t%s\n", pgsql_conn->host, pgsql_conn->db, PQerrorMessage(pg_conn));
 			PQfinish(pg_conn);
 			return;
 		default:
-			syslog(LOG_ERR, "pgsql: connection state is unknown when connecting to %s(%s)!\n\t%s\n", PQerrorMessage(pg_conn));
+			syslog(LOG_ERR, "pgsql: connection state is unknown when connecting to %s(%s)!\n\t%s\n", pgsql_conn->host, pgsql_conn->db, PQerrorMessage(pg_conn));
 			return;
 	}
 	syslog(LOG_INFO, "pgsql: connected to %s(%s)", pgsql_conn->host, pgsql_conn->db);
