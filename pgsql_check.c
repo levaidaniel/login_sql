@@ -32,8 +32,8 @@
 
 
 void
-pgsql_check(const char *got_username, char password[],
-		char digest_alg[], pgsql_connection *pgsql_conn)
+pgsql_check(const char *got_username, char *password,
+		char *digest_alg, pgsql_connection *pgsql_conn)
 {
 	PGconn		*pg_conn = NULL;
 

@@ -32,8 +32,8 @@
 
 
 void
-mysql_check(const char *got_username, char password[],
-		char digest_alg[], mysql_connection *mysql_conn)
+mysql_check(const char *got_username, char *password,
+		char *digest_alg, mysql_connection *mysql_conn)
 {
 	MYSQL		mysql;
 	MYSQL_RES	*mysql_result = NULL;
