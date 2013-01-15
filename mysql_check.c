@@ -114,13 +114,13 @@ mysql_check(const char *got_username, char *password,
 
 	mysql_numrows = mysql_num_rows(mysql_result);
 	if (mysql_numrows < 1) {
-		syslog(LOG_ERR, "mysql: query returned too few rows: %d", (int)mysql_numrows);
+		syslog(LOG_ERR, "mysql: query returned no rows!");
 		mysql_free_result(mysql_result);
 		mysql_close(&mysql);
 		return;
 	}
 	if (mysql_numrows > 1) {
-		syslog(LOG_ERR, "mysql: query returned too many rows: %d", (int)mysql_numrows);
+		syslog(LOG_ERR, "mysql: query returned more than one rows!");
 		mysql_free_result(mysql_result);
 		mysql_close(&mysql);
 		return;

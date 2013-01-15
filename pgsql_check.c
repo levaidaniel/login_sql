@@ -100,11 +100,11 @@ pgsql_check(const char *got_username, char *password,
 		case PGRES_TUPLES_OK:	/* this is what we want. we got back some data */
 			pg_numrows = PQntuples(pg_result);
 			if (pg_numrows < 1) {
-				syslog(LOG_ERR, "pgsql: command have returned no rows!\n");
+				syslog(LOG_ERR, "pgsql: query returned no rows!\n");
 				return;
 			}
 			if (pg_numrows > 1) {
-				syslog(LOG_ERR, "pgsql: command have returned more than one rows!\n");
+				syslog(LOG_ERR, "pgsql: query returned more than one rows!\n");
 				return;
 			}
 			/* write the queried password to the 'password' variable */
