@@ -55,47 +55,47 @@ sql_check(const char *got_username, const char *got_password,
 
 #ifdef _PGSQL_BACKEND
 	pgsql_connection	pgsql_conn = {
-		"",	/* dbconnection */
-		"",	/* table */
-		"",	/* user_col */
-		"",	/* pass_col */
-		"",	/* scheme_col */
-		"",	/* host */
-		""	/* db */
+		"dbname=login_sql host=localhost port=5432 user= password=",	/* dbconnection */
+		"userdb",	/* table */
+		"username",	/* user_col */
+		"password",	/* pass_col */
+		"sha256",	/* scheme_col */
+		"localhost",	/* host */
+		"login_sql"	/* db */
 	};
 
 	char		*where_str = NULL;	/* for the parameter searching */
 #endif
 #ifdef _MYSQL_BACKEND
 	mysql_connection	mysql_conn = {
-		"",	/* host */
-		"",	/* socket */
-		0,	/* port */
-		"",	/* db */
-		"",	/* user */
-		"",	/* pass */
-		"",	/* table */
-		"",	/* user_col */
-		"",	/* pass_col */
-		"",	/* scheme_col */
-		"",	/* key */
-		"",	/* cert */
-		"",	/* ca */
-		"",	/* capath */
-		""	/* cipher */
+		"localhost",	/* host */
+		"",		/* socket */
+		3306,		/* port */
+		"login_sql",	/* db */
+		"",		/* user */
+		"",		/* pass */
+		"userdb",	/* table */
+		"username",	/* user_col */
+		"password",	/* pass_col */
+		"scheme",	/* scheme_col */
+		"",		/* key */
+		"",		/* cert */
+		"",		/* ca */
+		"",		/* capath */
+		""		/* cipher */
 	};
 #endif
 #ifdef _SQLITE_BACKEND
 	sqlite_connection	sqlite_conn = {
-		""	/* database */
-		""	/* table */
-		""	/* user_col */
-		""	/* pass_col */
-		""	/* scheme_col */
+		"/etc/login_sql.sqlite"	/* database */
+		"userdb"		/* table */
+		"username"		/* user_col */
+		"password"		/* pass_col */
+		"scheme"		/* scheme_col */
 	};
 #endif
 
-	char		digest_alg[MAX_PARAM] = "";
+	char		digest_alg[MAX_PARAM] = "sha256";
 	char		sql_backend[MAX_PARAM] = "";
 
 	char		password[MAX_PASSWORD] = "";	/* the db specific functions will (over)write the password to this variable */
