@@ -66,7 +66,7 @@ mysql_check(const char *got_username, char *password,
 					mysql_conn->port,
 					(strlen(mysql_conn->socket) == 0 ) ? NULL : mysql_conn->socket,	/* this can not be given as an empty string */
 					0)) {
-		syslog(LOG_ERR, "error connecting to mysql: %s", mysql_error(&mysql));
+		syslog(LOG_ERR, "mysql: error connecting to %s(%s): %s", mysql_conn->host, mysql_conn->db, mysql_error(&mysql));
 		return;
 	}
 	syslog(LOG_INFO, "mysql: connected to %s(%s)", mysql_conn->host, mysql_conn->db);
@@ -100,27 +100,27 @@ mysql_check(const char *got_username, char *password,
 
 	/* execute the query */
 	if (mysql_query(&mysql, query_cmd) != 0) {
-		syslog(LOG_ERR, "error executing query: %s", mysql_error(&mysql));
+		syslog(LOG_ERR, "mysql: error executing query: %s", mysql_error(&mysql));
 		mysql_close(&mysql);
 		return;
 	}
 
 	mysql_result = mysql_store_result(&mysql);
 	if (!mysql_result) {
-		syslog(LOG_ERR, "query returned no result");
+		syslog(LOG_ERR, "mysql: query returned no result");
 		mysql_close(&mysql);
 		return;
 	}
 
 	mysql_numrows = mysql_num_rows(mysql_result);
 	if (mysql_numrows < 1) {
-		syslog(LOG_ERR, "query returned too few rows: %d", (int)mysql_numrows);
+		syslog(LOG_ERR, "mysql: query returned too few rows: %d", (int)mysql_numrows);
 		mysql_free_result(mysql_result);
 		mysql_close(&mysql);
 		return;
 	}
 	if (mysql_numrows > 1) {
-		syslog(LOG_ERR, "query returned too many rows: %d", (int)mysql_numrows);
+		syslog(LOG_ERR, "mysql: query returned too many rows: %d", (int)mysql_numrows);
 		mysql_free_result(mysql_result);
 		mysql_close(&mysql);
 		return;
@@ -133,7 +133,7 @@ mysql_check(const char *got_username, char *password,
 
 		mysql_lengths = mysql_fetch_lengths(mysql_result);
 		if ( mysql_lengths == NULL ) {
-			syslog(LOG_ERR, "error getting column lengths: %s", mysql_error(&mysql));
+			syslog(LOG_ERR, "mysql: error getting column lengths: %s", mysql_error(&mysql));
 			mysql_close(&mysql);
 			return;
 		}

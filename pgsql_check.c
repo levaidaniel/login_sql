@@ -58,11 +58,11 @@ pgsql_check(const char *got_username, char *password,
 		case CONNECTION_OK:
 			break;
 		case CONNECTION_BAD:
-			syslog(LOG_ERR, "postgresql connection is not complete!\n\t%s\n", PQerrorMessage(pg_conn));
+			syslog(LOG_ERR, "pgsql: connection is not complete to %s(%s)!\n\t%s\n", PQerrorMessage(pg_conn));
 			PQfinish(pg_conn);
 			return;
 		default:
-			syslog(LOG_ERR, "postgresql connection state is not determinable!\n\t%s\n", PQerrorMessage(pg_conn));
+			syslog(LOG_ERR, "pgsql: connection state is unknown when connecting to %s(%s)!\n\t%s\n", PQerrorMessage(pg_conn));
 			return;
 	}
 	syslog(LOG_INFO, "pgsql: connected to %s(%s)", pgsql_conn->host, pgsql_conn->db);
@@ -100,11 +100,11 @@ pgsql_check(const char *got_username, char *password,
 		case PGRES_TUPLES_OK:	/* this is what we want. we got back some data */
 			pg_numrows = PQntuples(pg_result);
 			if (pg_numrows < 1) {
-				syslog(LOG_ERR, "postgresql command have returned no rows!\n");
+				syslog(LOG_ERR, "pgsql: command have returned no rows!\n");
 				return;
 			}
 			if (pg_numrows > 1) {
-				syslog(LOG_ERR, "postgresql command have returned more than one rows!\n");
+				syslog(LOG_ERR, "pgsql: command have returned more than one rows!\n");
 				return;
 			}
 			/* write the queried password to the 'password' variable */
@@ -124,22 +124,22 @@ pgsql_check(const char *got_username, char *password,
 
 			break;
 		case PGRES_COMMAND_OK:
-			syslog(LOG_ERR, "postgresql command result: OK(%s) - but no data has been returned!\n", PQresStatus(pg_result_status));
+			syslog(LOG_ERR, "pgsql: command result OK(%s) - but no data has been returned!\n", PQresStatus(pg_result_status));
 			break;
 		case PGRES_EMPTY_QUERY:
-			syslog(LOG_ERR, "postgresql command result: ERROR(%s) - empty command string.\n", PQresStatus(pg_result_status));
+			syslog(LOG_ERR, "pgsql: command result ERROR(%s) - empty command string.\n", PQresStatus(pg_result_status));
 			break;
 		case PGRES_BAD_RESPONSE:
-			syslog(LOG_ERR, "postgresql command result: ERROR(%s) - bad response from server.\n", PQresStatus(pg_result_status));
+			syslog(LOG_ERR, "pgsql: command result ERROR(%s) - bad response from server.\n", PQresStatus(pg_result_status));
 			break;
 		case PGRES_NONFATAL_ERROR:
-			syslog(LOG_ERR, "postgresql command result: ERROR(%s) - non fatal error occured.\n", PQresStatus(pg_result_status));
+			syslog(LOG_ERR, "pgsql: command result ERROR(%s) - non fatal error occured.\n", PQresStatus(pg_result_status));
 			break;
 		case PGRES_FATAL_ERROR:
-			syslog(LOG_ERR, "postgresql command result: ERROR(%s) - fatal error occured.\n", PQresStatus(pg_result_status));
+			syslog(LOG_ERR, "pgsql: command result ERROR(%s) - fatal error occured.\n", PQresStatus(pg_result_status));
 			break;
 		default:
-			syslog(LOG_ERR, "postgresql command result: %s\n", PQresStatus(pg_result_status));
+			syslog(LOG_ERR, "pgsql: command result unknown(%s)\n", PQresStatus(pg_result_status));
 			break;
 	}
 
