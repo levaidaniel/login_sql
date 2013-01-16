@@ -86,7 +86,7 @@ sqlite_check(const char *got_username, char *password,
 					strlcpy(digest_alg, (const char *)sqlite3_column_text(query_prepared, 1), MAX_PARAM);
 			break;
 		case SQLITE_DONE:
-			syslog(LOG_ERR, "pgsql: query returned no rows!\n");
+			syslog(LOG_ERR, "sqlite: query returned no rows!\n");
 			break;
 		default:
 			syslog(LOG_ERR, "sqlite: unknown error code(%d): %s\n", result, sqlite3_errmsg(db));
@@ -94,7 +94,7 @@ sqlite_check(const char *got_username, char *password,
 	}
 	/* if there are more results (rows) */
 	if (sqlite3_step(query_prepared) == SQLITE_ROW) {
-		syslog(LOG_ERR, "pgsql: query returned more than one rows!\n");
+		syslog(LOG_ERR, "sqlite: query returned more than one rows!\n");
 		memset(password, '\0', MAX_PASSWORD);
 		return;
 	}
