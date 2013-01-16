@@ -41,6 +41,7 @@
 
 #define		BLOWFISH_SALT_LEN		29
 
-int		sql_check(const char *, const char *, const char *);
+
+int	sql_check(const char *, const char *, const char *);
 
 #endif

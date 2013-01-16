@@ -10,6 +10,6 @@
 
 #define	VERSION	"1.3-dev"
 
-int		malloc_check(void *);
+int	malloc_check(void *);
 
 #endif
