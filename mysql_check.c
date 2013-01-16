@@ -131,7 +131,7 @@ mysql_check(const char *got_username, char *password,
 
 	if ((mysql_row = mysql_fetch_row(mysql_result))) {
 		mysql_lengths = mysql_fetch_lengths(mysql_result);
-		if ( mysql_lengths == NULL ) {
+		if (mysql_lengths == NULL) {
 			syslog(LOG_ERR, "mysql: error getting column lengths: %s", mysql_error(&mysql));
 
 			mysql_free_result(mysql_result);
@@ -139,11 +139,11 @@ mysql_check(const char *got_username, char *password,
 			return;
 		}
 
-		if ( mysql_lengths[0] > 0 )
+		if (mysql_lengths[0] > 0)
 			/* write the queried password to the 'password' variable */
 			strlcpy(password, mysql_row[0], MAX_PASSWORD);
 
-		if ( mysql_lengths[1] > 0 )
+		if (mysql_lengths[1] > 0)
 			/* if the field is empty or NULL, we use the globally
 			 * defined digest_alg from the configuration file else,
 			 * write the queried scheme to the 'digest_alg' variable
