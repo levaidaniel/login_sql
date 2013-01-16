@@ -79,15 +79,16 @@ sqlite_check(const char *got_username, char *password,
 	switch (result) {
 		case SQLITE_ROW:
 			if (sqlite3_column_text(query_prepared, 0) != NULL)
-				/* write the queried password to the 'password' variable */
-				strlcpy(password, (const char *)sqlite3_column_text(query_prepared, 0), MAX_PASSWORD);
+				if (strlen((const char *)sqlite3_column_text(query_prepared, 0)) > 0)
+					/* write the queried password to the 'password' variable */
+					strlcpy(password, (const char *)sqlite3_column_text(query_prepared, 0), MAX_PASSWORD);
 
-			/* if the field is NULL or empty, we use the globally
-			 * defined digest_alg from the configuration file otherwise,
-			 * write the queried scheme to the 'digest_alg' variable
-			 */
 			if (sqlite3_column_text(query_prepared, 1) != NULL)
 				if (strlen((const char *)sqlite3_column_text(query_prepared, 1)) > 0)
+					/* if the field is NULL or empty, we use the globally
+					 * defined digest_alg from the configuration file otherwise,
+					 * write the queried scheme to the 'digest_alg' variable
+					 */
 					strlcpy(digest_alg, (const char *)sqlite3_column_text(query_prepared, 1), MAX_PARAM);
 			break;
 		case SQLITE_DONE:
