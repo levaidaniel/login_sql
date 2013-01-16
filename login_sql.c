@@ -70,6 +70,8 @@ main(int argc, char *argv[])
 				mode = MODE_RESPONSE;
 			} else {
 				syslog(LOG_ERR, "%s: invalid service", optarg);
+
+				closelog();
 				exit(AUTH_FAILED);
 			}
 			break;
@@ -78,6 +80,8 @@ main(int argc, char *argv[])
 			break;
 		default:
 			syslog(LOG_ERR, "usage error1");
+
+			closelog();
 			exit(AUTH_FAILED);
 		}
 	}
@@ -91,11 +95,15 @@ main(int argc, char *argv[])
 			break;
 		default:
 			syslog(LOG_ERR, "usage error2");
+
+			closelog();
 			exit(AUTH_FAILED);
 	}
 
 	if (back == NULL && (back = fdopen(3, "r+")) == NULL) {
 		syslog(LOG_ERR, "reopening back channel: %m");
+
+		closelog();
 		exit(AUTH_FAILED);
 	}
 
@@ -105,6 +113,8 @@ main(int argc, char *argv[])
 			break;
 		case MODE_CHALLENGE:
 			fprintf(back, BI_CHALLENGE "\n");
+
+			closelog();
 			exit(AUTH_OK);
 			break;
 		case MODE_RESPONSE:
@@ -128,6 +138,8 @@ main(int argc, char *argv[])
 			break;
 		default:
 			syslog(LOG_ERR, "%d: unknown mode", mode);
+
+			closelog();
 			exit(AUTH_FAILED);
 			break;
 	}
@@ -136,29 +148,29 @@ main(int argc, char *argv[])
 	lc = login_getclass(class);
 	if (!lc) {
 		syslog(LOG_ERR, "unknown class: %s\n", class);
-		return(AUTH_FAILED);
+
+		closelog();
+		exit(AUTH_FAILED);
 	}
 	config_file = login_getcapstr(lc, CAP_CONFIG_FILE, NULL, NULL);
 	login_close(lc);
 
-	/* check against postgresql */
+	/* check against SQL */
 	sql_check_ret = sql_check(username, password, config_file);
 	if (sql_check_ret == EXIT_SUCCESS) {
 		fprintf(back, BI_AUTH "\n");
 		syslog(LOG_NOTICE, "authorize ok for %s\n", username);
-		closelog();
 
+		closelog();
 		exit(AUTH_OK);
 	} else if (sql_check_ret == EXIT_FAILURE) {
 		fprintf(back, BI_REJECT "\n");
 		syslog(LOG_NOTICE, "authorize fail for %s\n", username);
-		closelog();
 	} else {
 		fprintf(back, BI_REJECT "\n");
 		syslog(LOG_ERR, "unkown error in authorization\n");
-		closelog();
 	}
 
 	closelog();
-	return(AUTH_FAILED);
+	exit(AUTH_FAILED);
 } /* main() */
