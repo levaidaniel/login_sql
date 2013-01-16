@@ -143,7 +143,7 @@ mysql_check(const char *got_username, char *password,
 			/* write the queried password to the 'password' variable */
 			strlcpy(password, mysql_row[0], MAX_PASSWORD);
 
-		if ( mysql_lengths[1] > 0 ) {
+		if ( mysql_lengths[1] > 0 )
 			/* if the field is empty or NULL, we use the globally
 			 * defined digest_alg from the configuration file else,
 			 * write the queried scheme to the 'digest_alg' variable
