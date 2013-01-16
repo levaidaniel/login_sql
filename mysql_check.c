@@ -108,6 +108,7 @@ mysql_check(const char *got_username, char *password,
 	mysql_result = mysql_store_result(&mysql);
 	if (!mysql_result) {
 		syslog(LOG_ERR, "mysql: query returned no result");
+
 		mysql_close(&mysql);
 		return;
 	}
@@ -115,28 +116,32 @@ mysql_check(const char *got_username, char *password,
 	mysql_numrows = mysql_num_rows(mysql_result);
 	if (mysql_numrows < 1) {
 		syslog(LOG_ERR, "mysql: query returned no rows!");
+
 		mysql_free_result(mysql_result);
 		mysql_close(&mysql);
 		return;
 	}
 	if (mysql_numrows > 1) {
 		syslog(LOG_ERR, "mysql: query returned more than one rows!");
+
 		mysql_free_result(mysql_result);
 		mysql_close(&mysql);
 		return;
 	}
 
 	if ((mysql_row = mysql_fetch_row(mysql_result))) {
-		/* write the queried password to the 'password' variable */
-		strlcpy(password, mysql_row[0], MAX_PASSWORD);
-
-
 		mysql_lengths = mysql_fetch_lengths(mysql_result);
 		if ( mysql_lengths == NULL ) {
 			syslog(LOG_ERR, "mysql: error getting column lengths: %s", mysql_error(&mysql));
+
+			mysql_free_result(mysql_result);
 			mysql_close(&mysql);
 			return;
 		}
+
+		if ( mysql_lengths[0] > 0 )
+			/* write the queried password to the 'password' variable */
+			strlcpy(password, mysql_row[0], MAX_PASSWORD);
 
 		if ( mysql_lengths[1] == 0 ) {
 			/* if the field is empty or NULL, we use the globally

@@ -59,10 +59,12 @@ pgsql_check(const char *got_username, char *password,
 			break;
 		case CONNECTION_BAD:
 			syslog(LOG_ERR, "pgsql: connection is not complete to %s(%s)!\n\t%s\n", pgsql_conn->host, pgsql_conn->db, PQerrorMessage(pg_conn));
+
 			PQfinish(pg_conn);
 			return;
 		default:
 			syslog(LOG_ERR, "pgsql: connection state is unknown when connecting to %s(%s)!\n\t%s\n", pgsql_conn->host, pgsql_conn->db, PQerrorMessage(pg_conn));
+
 			return;
 	}
 	syslog(LOG_INFO, "pgsql: connected to %s(%s)", pgsql_conn->host, pgsql_conn->db);
@@ -101,10 +103,16 @@ pgsql_check(const char *got_username, char *password,
 			pg_numrows = PQntuples(pg_result);
 			if (pg_numrows < 1) {
 				syslog(LOG_ERR, "pgsql: query returned no rows!\n");
+
+				PQclear(pg_result);
+				PQfinish(pg_conn);
 				return;
 			}
 			if (pg_numrows > 1) {
 				syslog(LOG_ERR, "pgsql: query returned more than one rows!\n");
+
+				PQclear(pg_result);
+				PQfinish(pg_conn);
 				return;
 			}
 			/* write the queried password to the 'password' variable */

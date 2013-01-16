@@ -48,6 +48,7 @@ sqlite_check(const char *got_username, char *password,
 
 	if (sqlite3_open(sqlite_conn->database, &db)) {
 		syslog(LOG_ERR, "sqlite: can not open database %s: %s", sqlite_conn->database, sqlite3_errmsg(db));
+
 		sqlite3_close(db);
 		return;
 	}
@@ -63,10 +64,14 @@ sqlite_check(const char *got_username, char *password,
 	 */
 	if (sqlite3_prepare_v2(db, query_cmd, MAX_QUERY_CMD, &query_prepared, NULL) != SQLITE_OK) {
 		syslog(LOG_ERR, "sqlite: error preparing statement: %s\n", sqlite3_errmsg(db));
+
+		sqlite3_close(db);
 		return;
 	}
 	if (!query_prepared) {
 		syslog(LOG_ERR, "sqlite: error preparing statement: %s\n", sqlite3_errmsg(db));
+
+		sqlite3_close(db);
 		return;
 	}
 
@@ -96,6 +101,9 @@ sqlite_check(const char *got_username, char *password,
 	if (sqlite3_step(query_prepared) == SQLITE_ROW) {
 		syslog(LOG_ERR, "sqlite: query returned more than one rows!\n");
 		memset(password, '\0', MAX_PASSWORD);
+
+		sqlite3_finalize(query_prepared);
+		sqlite3_close(db);
 		return;
 	}
 
