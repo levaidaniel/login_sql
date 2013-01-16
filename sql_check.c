@@ -87,11 +87,11 @@ sql_check(const char *got_username, const char *got_password,
 #endif
 #ifdef _SQLITE_BACKEND
 	sqlite_connection	sqlite_conn = {
-		"/etc/login_sql.sqlite"	/* database */
-		"userdb"		/* table */
-		"username"		/* user_col */
-		"password"		/* pass_col */
-		"scheme"		/* scheme_col */
+		"/etc/login_sql.sqlite",	/* database */
+		"userdb",			/* table */
+		"username",			/* user_col */
+		"password",			/* pass_col */
+		"scheme"			/* scheme_col */
 	};
 #endif
 
