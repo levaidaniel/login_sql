@@ -116,7 +116,7 @@ sql_check(const char *got_username, const char *got_password,
 		config_file = CFG_FILE_DEFAULT;
 
 	cfg_file_stream = fopen(config_file, "r");
-	if (cfg_file_stream == NULL ) {
+	if (cfg_file_stream == NULL) {
 		syslog(LOG_ERR, "error opening %s: %s\n", config_file, strerror(errno));
 		return(EXIT_FAILURE);
 	}
@@ -273,7 +273,8 @@ sql_check(const char *got_username, const char *got_password,
 		strlcpy(got_password_digest_string, got_password, strlen(got_password) + 1);
 	} else if (strncmp(digest_alg, "blowfish", strlen("blowfish")) == 0) {
 		/* ... if it is blowfish, use the crypt() function in blowfish
-		 * mode ... */
+		 * mode ...
+		 */
 
 		strlcpy(salt, password, BLOWFISH_SALT_LEN + 1);	/* extract the salt from the queried password */
 		got_password_digest_string = crypt(got_password, salt);
@@ -283,12 +284,14 @@ sql_check(const char *got_username, const char *got_password,
 		}
 	} else if (strncmp(digest_alg, "md5crypt", strlen("md5crypt")) == 0) {
 		/* ... if it is md5crypt, use the crypt() function in md5 mode
-		 * ... */
+		 * ...
+		 */
 
 		/* extract the salt from the queried password
-		 * It spans from the first character until the third '$' sign. */
+		 * It spans from the first character until the third '$' sign.
+		 */
 		i = 0; di = 0;
-		while (	di != 3  &&  i <= strlen(password)  &&  i < BLOWFISH_SALT_LEN + 1 ) {
+		while (di != 3  &&  i <= strlen(password)  &&  i < BLOWFISH_SALT_LEN + 1) {
 			salt[i] = password[i];
 			if (password[i] == '$')
 				di++;
@@ -301,7 +304,8 @@ sql_check(const char *got_username, const char *got_password,
 		}
 	} else {
 		/* ... if something else, then pass it to openssl, and see if it
-		 * can make something out of it :) */
+		 * can make something out of it :)
+		 */
 
 		OpenSSL_add_all_digests();
 		md = EVP_get_digestbyname(digest_alg);
@@ -325,19 +329,17 @@ sql_check(const char *got_username, const char *got_password,
 		free(digest_tmp); digest_tmp = NULL;
 	}
 
-	if ( got_password_digest_string == NULL  ||
-			strlen(got_password_digest_string) == 0  ||
-			strlen(got_password) == 0 ) {
+	if (	got_password_digest_string == NULL  ||
+		strlen(got_password_digest_string) == 0  ||
+		strlen(got_password) == 0) {
+
 		return(EXIT_FAILURE);
 	}
 
 
 	/* compare the compiled message digest and the queried one */
-	if (strcmp(password, got_password_digest_string) == 0) {
-		/* free(got_password_digest_string); got_password_digest_string = NULL; */
+	if (strcmp(password, got_password_digest_string) == 0)
 		return(EXIT_SUCCESS);
-	} else {
-		/* free(got_password_digest_string); got_password_digest_string = NULL; */
+	else
 		return(EXIT_FAILURE);
-	}
 } /* int sql_check() */

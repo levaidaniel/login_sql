@@ -64,7 +64,7 @@ mysql_check(const char *got_username, char *password,
 					mysql_conn->pass,
 					mysql_conn->db,
 					mysql_conn->port,
-					(strlen(mysql_conn->socket) == 0 ) ? NULL : mysql_conn->socket,	/* this can not be given as an empty string */
+					(strlen(mysql_conn->socket) == 0) ? NULL : mysql_conn->socket,	/* this can not be given as an empty string */
 					0)) {
 		syslog(LOG_ERR, "mysql: error connecting to %s(%s): %s", mysql_conn->host, mysql_conn->db, mysql_error(&mysql));
 		return;

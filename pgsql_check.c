@@ -117,13 +117,13 @@ pgsql_check(const char *got_username, char *password,
 			}
 
 			if (	PQgetlength(pg_result, 0, 0) > 0  &&
-				!PQgetisnull(pg_result, 0, 0) )
+				!PQgetisnull(pg_result, 0, 0))
 				/* write the queried password to the 'password' variable */
 				strlcpy(password, PQgetvalue(pg_result, 0, 0), MAX_PASSWORD);
 
 
 			if (	PQgetlength(pg_result, 0, 1) > 0  &&
-				!PQgetisnull(pg_result, 0, 1) )
+				!PQgetisnull(pg_result, 0, 1))
 				/* if the field is empty or NULL, we use the globally
 				 * defined digest_alg from the configuration file else,
 				 * write the queried scheme to the 'digest_alg' variable
