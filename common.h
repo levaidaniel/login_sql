@@ -8,7 +8,7 @@
 #include <string.h>
 #include <syslog.h>
 
-#define	VERSION	"1.3-dev"
+#define	VERSION	"1.4-dev"
 
 int	malloc_check(void *);
 
