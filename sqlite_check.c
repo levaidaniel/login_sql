@@ -22,8 +22,6 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifdef _SQLITE_BACKEND
-
 #include <sqlite3.h>
 
 #include "common.h"
@@ -121,4 +119,3 @@ sqlite_check(const char *got_username, char *password,
 	sqlite3_finalize(query_prepared);
 	sqlite3_close(db);
 } /* void sqlite_check() */
-#endif

@@ -22,8 +22,6 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifdef _MYSQL_BACKEND
-
 #include <mysql.h>
 
 #include "common.h"
@@ -164,4 +162,3 @@ mysql_check(const char *got_username, char *password,
 	mysql_free_result(mysql_result);
 	mysql_close(&mysql);
 } /* void mysql_check() */
-#endif

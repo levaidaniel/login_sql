@@ -22,8 +22,6 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifdef _PGSQL_BACKEND
-
 #include <libpq-fe.h>
 
 #include "common.h"
@@ -176,4 +174,3 @@ pgsql_check(const char *got_username, char *password,
 	PQclear(pg_result);
 	PQfinish(pg_conn);
 } /* void pgsql_check() */
-#endif
