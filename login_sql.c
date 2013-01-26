@@ -144,6 +144,13 @@ main(int argc, char *argv[])
 			break;
 	}
 
+	if (!password) {
+		syslog(LOG_ERR, "error reading password\n");
+
+		closelog();
+		exit(AUTH_FAILED);
+	}
+
 	/* if defined in login.conf(5), get the config file's path */
 	lc = login_getclass(class);
 	if (!lc) {

@@ -164,9 +164,14 @@ sql_check(const char *got_username, const char *got_password,
 	}
 
 
-	/* apply the appropriate crypt/hash method */
+	/* empty password? */
+	if (	strcmp(cfg.empty_password, "yes") == 0  &&
+		!strlen(got_password))
 
-	if (strcmp(cfg.pw_scheme, "cleartext") == 0) {
+		got_password_digest_string = "";
+
+	/* apply the appropriate crypt/hash method */
+	else if (strcmp(cfg.pw_scheme, "cleartext") == 0) {
 		/* if the digest algorithm is cleartext, use the password as is ... */
 
 		got_password_digest_string = (char *)malloc(strlen(got_password) + 1); malloc_check(got_password_digest_string);
@@ -179,10 +184,6 @@ sql_check(const char *got_username, const char *got_password,
 		/* extract the salt from the queried password */
 		strlcpy(salt, password, BLOWFISH_SALT_LEN + 1);
 		got_password_digest_string = crypt(got_password, salt);
-		if (!got_password_digest_string) {
-			syslog(LOG_ERR, "error encrypting password: %s\n", strerror(errno));
-			return(EXIT_FAILURE);
-		}
 	} else if (strcmp(cfg.pw_scheme, "md5crypt") == 0) {
 		/* ... if it is md5crypt, use the crypt() function in md5 mode
 		 * ...
@@ -200,10 +201,6 @@ sql_check(const char *got_username, const char *got_password,
 			i++;
 		}
 		got_password_digest_string = crypt(got_password, salt);
-		if (!got_password_digest_string) {
-			syslog(LOG_ERR, "error encrypting password: %s\n", strerror(errno));
-			return(EXIT_FAILURE);
-		}
 	} else {
 		/* ... if something else, then pass it to openssl, and see if it
 		 * can make something out of it :)
@@ -232,18 +229,16 @@ sql_check(const char *got_username, const char *got_password,
 		}
 		free(digest_tmp); digest_tmp = NULL;
 	}
-
-	/* empty password? */
-	if (	strcmp(cfg.empty_password, "yes") == 0  &&
-		got_password_digest_string == NULL)
-
-		got_password_digest_string = "";
+	if (!got_password_digest_string) {
+		syslog(LOG_ERR, "error encrypting password: %s\n", strerror(errno));
+		return(EXIT_FAILURE);
+	}
 
 
 	if (	strcmp(cfg.empty_password, "yes") != 0  &&
-		(got_password_digest_string == NULL  ||
-		strlen(got_password_digest_string) == 0  ||
-		strlen(got_password) == 0))
+		(!strlen(got_password_digest_string)  ||
+		!strlen(got_password)  ||
+		!strlen(password)))
 
 		return(EXIT_FAILURE);
 
@@ -380,7 +375,7 @@ check_config(void)
 		return(0);
 	}
 
-	if (	strcmp(cfg.empty_password, "yes") != 0  ||
+	if (	strcmp(cfg.empty_password, "yes") != 0  &&
 		strcmp(cfg.empty_password, "no") != 0) {
 
 		syslog(LOG_ERR, "%s can be either yes or no!", CONFIG_GLOBAL_EMPTY_PASSWORD);
