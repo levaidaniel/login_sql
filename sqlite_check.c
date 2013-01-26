@@ -36,40 +36,45 @@ int sqlite_cb(void *, int, char *[], char *[]);
 
 void
 sqlite_check(const char *got_username, char *password,
-		char *digest_alg, sqlite_connection *sqlite_conn)
+		config_global *cfg)
 {
 	sqlite3		*db = NULL;
 	sqlite3_stmt	*query_prepared;
 
 	int		result = -1;
-	const char	*query_tpl = "SELECT %q, %q FROM %q WHERE %q = '%q'";
+	const char	*query_tpl = "SELECT %q, %q FROM %q WHERE %q = '%q' and %q = 1; --";
 	char		query_cmd[MAX_QUERY_CMD] = "";
 
 
-	if (sqlite3_open(sqlite_conn->database, &db)) {
-		syslog(LOG_ERR, "sqlite: can not open database %s: %s", sqlite_conn->database, sqlite3_errmsg(db));
+	if (sqlite3_open(cfg->db_name, &db)) {
+		syslog(LOG_ERR, "sqlite: can not open database %s: %s",
+			cfg->db_name, sqlite3_errmsg(db));
 
 		sqlite3_close(db);
 		return;
 	}
-	syslog(LOG_INFO, "sqlite: opened database(%s)", sqlite_conn->database);
+	syslog(LOG_INFO, "sqlite: opened database(%s)", cfg->db_name);
 
 	/* Fill the template sql command with the required fields.
 	 * Escaping done by the %q format character of sqlite3_snprintf().
 	 */
-	sqlite3_snprintf(MAX_QUERY_CMD, query_cmd, query_tpl, sqlite_conn->pass_col, sqlite_conn->scheme_col, sqlite_conn->table, sqlite_conn->user_col, got_username);
+	sqlite3_snprintf(MAX_QUERY_CMD, query_cmd, query_tpl,
+				cfg->column_password, cfg->column_scheme, cfg->db_table,
+				cfg->column_username, got_username, cfg->column_enabled);
 
 	/* We will write the queried password to the 'password' variable
 	 * in the callback function.
 	 */
 	if (sqlite3_prepare_v2(db, query_cmd, MAX_QUERY_CMD, &query_prepared, NULL) != SQLITE_OK) {
-		syslog(LOG_ERR, "sqlite: error preparing statement: %s\n", sqlite3_errmsg(db));
+		syslog(LOG_ERR, "sqlite: error preparing statement: %s\n",
+			sqlite3_errmsg(db));
 
 		sqlite3_close(db);
 		return;
 	}
 	if (!query_prepared) {
-		syslog(LOG_ERR, "sqlite: error preparing statement: %s\n", sqlite3_errmsg(db));
+		syslog(LOG_ERR, "sqlite: error preparing statement: %s\n",
+			sqlite3_errmsg(db));
 
 		sqlite3_close(db);
 		return;
@@ -81,21 +86,26 @@ sqlite_check(const char *got_username, char *password,
 			if (sqlite3_column_text(query_prepared, 0) != NULL)
 				if (strlen((const char *)sqlite3_column_text(query_prepared, 0)) > 0)
 					/* write the queried password to the 'password' variable */
-					strlcpy(password, (const char *)sqlite3_column_text(query_prepared, 0), MAX_PASSWORD);
+					strlcpy(password,
+						(const char *)sqlite3_column_text(query_prepared, 0),
+						MAX_PASSWORD);
 
 			if (sqlite3_column_text(query_prepared, 1) != NULL)
 				if (strlen((const char *)sqlite3_column_text(query_prepared, 1)) > 0)
 					/* if the field is NULL or empty, we use the globally
-					 * defined digest_alg from the configuration file otherwise,
-					 * write the queried scheme to the 'digest_alg' variable
+					 * defined password scheme from the configuration file otherwise,
+					 * write the queried scheme to the 'cfg->pw_scheme' variable
 					 */
-					strlcpy(digest_alg, (const char *)sqlite3_column_text(query_prepared, 1), MAX_PARAM);
+					strlcpy(cfg->pw_scheme,
+						(const char *)sqlite3_column_text(query_prepared, 1),
+						MAX_PARAM);
 			break;
 		case SQLITE_DONE:
 			syslog(LOG_ERR, "sqlite: query returned no rows!\n");
 			break;
 		default:
-			syslog(LOG_ERR, "sqlite: unknown error code(%d): %s\n", result, sqlite3_errmsg(db));
+			syslog(LOG_ERR, "sqlite: unknown error code(%d): %s\n",
+				result, sqlite3_errmsg(db));
 			break;
 	}
 	/* if there are more results (rows) */

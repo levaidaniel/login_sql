@@ -1,47 +1,55 @@
 #ifndef _SQL_CHECK_H
-#define _SQL_CHECK_H 
+#define _SQL_CHECK_H
+
+#include <sys/param.h>
+
 
 #define		MAX_QUERY_CMD		512
-#define		MAX_CFG_LINE		1024
-#define		MAX_PARAM		64
-#define		MAX_USERNAME		256
-#define		MAX_PASSWORD		256
+#define		MAX_CONFIG_LINE		MAXPATHLEN + 32
+#define		MAX_PARAM		128
+#define		MAX_USERNAME		128
+#define		MAX_PASSWORD		128
 
-#define		CFG_FILE_DEFAULT	"/etc/login_sql.conf"
+#define		BLOWFISH_SALT_LEN	29
 
-#define		CFG_PARAM_PGSQL_DBCONNECTION	"pgsql_dbconnection="
-#define		CFG_PARAM_PGSQL_TABLE		"pgsql_table="
-#define		CFG_PARAM_PGSQL_USER_COL	"pgsql_user_col="
-#define		CFG_PARAM_PGSQL_PASS_COL	"pgsql_pass_col="
-#define		CFG_PARAM_PGSQL_SCHEME_COL	"pgsql_scheme_col="
+#define		CONFIG_FILE_DEFAULT		"/etc/login_sql.conf"
 
-#define		CFG_PARAM_MYSQL_HOST		"mysql_host="
-#define		CFG_PARAM_MYSQL_PORT		"mysql_port="
-#define		CFG_PARAM_MYSQL_DB		"mysql_db="
-#define		CFG_PARAM_MYSQL_USER		"mysql_user="
-#define		CFG_PARAM_MYSQL_PASS		"mysql_pass="
-#define		CFG_PARAM_MYSQL_TABLE		"mysql_table="
-#define		CFG_PARAM_MYSQL_USER_COL	"mysql_user_col="
-#define		CFG_PARAM_MYSQL_PASS_COL	"mysql_pass_col="
-#define		CFG_PARAM_MYSQL_SCHEME_COL	"mysql_scheme_col="
-#define		CFG_PARAM_MYSQL_KEY		"mysql_key="
-#define		CFG_PARAM_MYSQL_CERT		"mysql_cert="
-#define		CFG_PARAM_MYSQL_CA		"mysql_ca="
-#define		CFG_PARAM_MYSQL_CAPATH		"mysql_capath="
-#define		CFG_PARAM_MYSQL_CIPHER		"mysql_cipher="
+#define		CONFIG_GLOBAL_SQL_BACKEND	"sql_backend="
 
-#define		CFG_PARAM_SQLITE_DATABASE	"sqlite_database="
-#define		CFG_PARAM_SQLITE_TABLE		"sqlite_table="
-#define		CFG_PARAM_SQLITE_USER_COL	"sqlite_user_col="
-#define		CFG_PARAM_SQLITE_PASS_COL	"sqlite_pass_col="
-#define		CFG_PARAM_SQLITE_SCHEME_COL	"sqlite_scheme_col="
+#define		CONFIG_GLOBAL_DB_HOST		"db_host="
+#define		CONFIG_GLOBAL_DB_PORT		"db_port="
+#define		CONFIG_GLOBAL_DB_NAME		"db_name="
+#define		CONFIG_GLOBAL_DB_USERNAME	"db_username="
+#define		CONFIG_GLOBAL_DB_PASSWORD	"db_password="
+#define		CONFIG_GLOBAL_DB_TABLE		"db_table="
 
-#define		CFG_PARAM_DIGEST_ALG		"digest_alg="
-#define		CFG_PARAM_SQL_BACKEND		"sql_backend="
+#define		CONFIG_GLOBAL_COLUMN_USERNAME	"column_username="
+#define		CONFIG_GLOBAL_COLUMN_PASSWORD	"column_password="
+#define		CONFIG_GLOBAL_COLUMN_SCHEME	"column_scheme="
+#define		CONFIG_GLOBAL_COLUMN_ENABLED	"column_enabled="
 
-#define		BLOWFISH_SALT_LEN		29
+#define		CONFIG_GLOBAL_PW_SCHEME		"pw_scheme="
 
 
 int	sql_check(const char *, const char *, const char *);
+
+
+typedef struct config_global {
+	char	sql_backend[MAX_PARAM];
+
+	char	db_host[MAX_PARAM];
+	int	db_port;
+	char	db_name[MAXPATHLEN];
+	char	db_username[MAX_PARAM];
+	char	db_password[MAX_PARAM];
+	char	db_table[MAX_PARAM];
+
+	char	column_username[MAX_PARAM];
+	char	column_password[MAX_PARAM];
+	char	column_scheme[MAX_PARAM];
+	char	column_enabled[MAX_PARAM];
+
+	char	pw_scheme[MAX_PARAM];
+} config_global;
 
 #endif

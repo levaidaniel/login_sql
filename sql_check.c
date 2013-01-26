@@ -45,62 +45,55 @@
 #include <openssl/evp.h>
 
 
+config_global	cfg = {
+	"",	/* sql_backend */
+
+	"",	/* db_host */
+	0,	/* db_port */
+	"",	/* db_name */
+	"",	/* db_username */
+	"",	/* db_password */
+	"",	/* db_table */
+
+	""	/* column_username */
+	""	/* column_password */
+	""	/* column_scheme */
+	""	/* column_enabled */
+
+	""	/* pw_scheme */
+};
+#ifdef _PGSQL_BACKEND
+config_pgsql	cfg_pgsql = {
+	"",	/* dbconnection */
+};
+#endif
+#ifdef _MYSQL_BACKEND
+config_mysql	cfg_mysql = {
+	"",	/* key */
+	"",	/* cert */
+	"",	/* ca */
+	"",	/* capath */
+	""	/* cipher */
+};
+#endif
+
+
+void parse_config(const char *config_line);
+char check_config(void);
+
+
 int
 sql_check(const char *got_username, const char *got_password,
 		const char *config_file)
 {
-	FILE		*cfg_file_stream = NULL;
-	char		cfg_input_str[MAX_CFG_LINE];
-	int		cfg_file_error = 0;
+	FILE		*s_config_file = NULL;
+	char		config_line[MAX_CONFIG_LINE];
 
-#ifdef _PGSQL_BACKEND
-	pgsql_connection	pgsql_conn = {
-		"dbname=login_sql host=localhost port=5432 user= password=",	/* dbconnection */
-		"userdb",	/* table */
-		"username",	/* user_col */
-		"password",	/* pass_col */
-		"sha256",	/* scheme_col */
-		"localhost",	/* host */
-		"login_sql"	/* db */
-	};
+	/* the db specific functions will (over)write the password to this variable */
+	char		password[MAX_PASSWORD] = "";
 
-	char		*where_str = NULL;	/* for the parameter searching */
-#endif
-#ifdef _MYSQL_BACKEND
-	mysql_connection	mysql_conn = {
-		"localhost",	/* host */
-		"",		/* socket */
-		3306,		/* port */
-		"login_sql",	/* db */
-		"",		/* user */
-		"",		/* pass */
-		"userdb",	/* table */
-		"username",	/* user_col */
-		"password",	/* pass_col */
-		"scheme",	/* scheme_col */
-		"",		/* key */
-		"",		/* cert */
-		"",		/* ca */
-		"",		/* capath */
-		""		/* cipher */
-	};
-#endif
-#ifdef _SQLITE_BACKEND
-	sqlite_connection	sqlite_conn = {
-		"/etc/login_sql.sqlite",	/* database */
-		"userdb",			/* table */
-		"username",			/* user_col */
-		"password",			/* pass_col */
-		"scheme"			/* scheme_col */
-	};
-#endif
-
-	char		digest_alg[MAX_PARAM] = "sha256";
-	char		sql_backend[MAX_PARAM] = "";
-
-	char		password[MAX_PASSWORD] = "";	/* the db specific functions will (over)write the password to this variable */
-
-	char		salt[BLOWFISH_SALT_LEN + 1] = "";	/* to use with crypt() */
+	/* to be used with crypt() */
+	char		salt[BLOWFISH_SALT_LEN + 1] = "";
 
 	/* OpenSSL stuff for the message digest algorithms */
 	EVP_MD_CTX	mdctx;
@@ -113,176 +106,81 @@ sql_check(const char *got_username, const char *got_password,
 
 	/* if there was no config file defined in login.conf(5), use the default filename */
 	if (!config_file)
-		config_file = CFG_FILE_DEFAULT;
+		config_file = CONFIG_FILE_DEFAULT;
 
-	cfg_file_stream = fopen(config_file, "r");
-	if (cfg_file_stream == NULL) {
+	s_config_file = fopen(config_file, "r");
+	if (s_config_file == NULL) {
 		syslog(LOG_ERR, "error opening %s: %s\n", config_file, strerror(errno));
 		return(EXIT_FAILURE);
 	}
 
 	/* parse the config file */
-	while (fgets(cfg_input_str, sizeof(cfg_input_str), cfg_file_stream)) {
-		cfg_file_error = errno;
+	while (fgets(config_line, sizeof(config_line), s_config_file)) {
+		/* strip the newline */
+		if (config_line[(int)strlen(config_line) - 1] == '\n')
+			config_line[(int)strlen(config_line) - 1] = '\0';
 
-		if (cfg_input_str[(int)strlen(cfg_input_str) - 1] == '\n') {		/* strip the newline */
-			cfg_input_str[(int)strlen(cfg_input_str) - 1] = '\0';
-		}
-
-#ifdef _PGSQL_BACKEND
-		if (strncmp(cfg_input_str, CFG_PARAM_PGSQL_DBCONNECTION, strlen(CFG_PARAM_PGSQL_DBCONNECTION)) == 0) {
-			strlcpy(pgsql_conn.dbconnection, cfg_input_str + (int)strlen(CFG_PARAM_PGSQL_DBCONNECTION), MAX_CFG_LINE);
-
-			/* Extract the dbname parameter. */
-			where_str = strstr(pgsql_conn.dbconnection, "dbname=");
-			if (where_str) {	/* if the parameter is found */
-				strlcpy(pgsql_conn.db, where_str + (int)strlen("dbname="), MAX_PARAM);
-				pgsql_conn.db[(int)strcspn(pgsql_conn.db, " ")] = '\0';	/* close the string where the first space appears */
-			}
-
-			/* Extract the host/hostaddr parameter.
-			 * The hostaddr parameter takes precedence over the host parameter.
-			 */
-			where_str = strstr(pgsql_conn.dbconnection, "host=");
-			if (where_str) {	/* if the parameter is found */
-				strlcpy(pgsql_conn.host, where_str + (int)strlen("host="), MAX_PARAM);
-				pgsql_conn.host[(int)strcspn(pgsql_conn.host, " ")] = '\0';	/* close the string where the first space appears */
-			}
-			where_str = strstr(pgsql_conn.dbconnection, "hostaddr=");
-			if (where_str) {
-				strlcpy(pgsql_conn.host, where_str + (int)strlen("hostaddr="), MAX_PARAM);
-				pgsql_conn.host[(int)strcspn(pgsql_conn.host, " ")] = '\0';	/* close the string where the first space appears */
-			}
-		}
-		if (strncmp(cfg_input_str, CFG_PARAM_PGSQL_TABLE, strlen(CFG_PARAM_PGSQL_TABLE)) == 0)
-			strlcpy(pgsql_conn.table, cfg_input_str + (int)strlen(CFG_PARAM_PGSQL_TABLE), MAX_PARAM);
-
-		if (strncmp(cfg_input_str, CFG_PARAM_PGSQL_USER_COL, strlen(CFG_PARAM_PGSQL_USER_COL)) == 0)
-			strlcpy(pgsql_conn.user_col, cfg_input_str + (int)strlen(CFG_PARAM_PGSQL_USER_COL), MAX_PARAM);
-
-		if (strncmp(cfg_input_str, CFG_PARAM_PGSQL_PASS_COL, strlen(CFG_PARAM_PGSQL_PASS_COL)) == 0)
-			strlcpy(pgsql_conn.pass_col, cfg_input_str + (int)strlen(CFG_PARAM_PGSQL_PASS_COL), MAX_PARAM);
-
-		if (strncmp(cfg_input_str, CFG_PARAM_PGSQL_SCHEME_COL, strlen(CFG_PARAM_PGSQL_SCHEME_COL)) == 0)
-			strlcpy(pgsql_conn.scheme_col, cfg_input_str + (int)strlen(CFG_PARAM_PGSQL_SCHEME_COL), MAX_PARAM);
-#endif
-#ifdef _MYSQL_BACKEND
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_HOST, strlen(CFG_PARAM_MYSQL_HOST)) == 0)
-			strlcpy(mysql_conn.host, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_HOST), MAX_PARAM);
-
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_PORT, strlen(CFG_PARAM_MYSQL_PORT)) == 0)
-			sscanf(cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_PORT), "%u", &mysql_conn.port);
-
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_DB, strlen(CFG_PARAM_MYSQL_DB)) == 0)
-			strlcpy(mysql_conn.db, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_DB), MAX_PARAM);
-
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_USER, strlen(CFG_PARAM_MYSQL_USER)) == 0)
-			strlcpy(mysql_conn.user, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_USER), MAX_PARAM);
-
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_PASS, strlen(CFG_PARAM_MYSQL_PASS)) == 0)
-			strlcpy(mysql_conn.pass, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_PASS), MAX_PARAM);
-
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_TABLE, strlen(CFG_PARAM_MYSQL_TABLE)) == 0)
-			strlcpy(mysql_conn.table, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_TABLE), MAX_PARAM);
-
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_USER_COL, strlen(CFG_PARAM_MYSQL_USER_COL)) == 0)
-			strlcpy(mysql_conn.user_col, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_USER_COL), MAX_PARAM);
-
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_PASS_COL, strlen(CFG_PARAM_MYSQL_PASS_COL)) == 0)
-			strlcpy(mysql_conn.pass_col, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_PASS_COL), MAX_PARAM);
-
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_SCHEME_COL, strlen(CFG_PARAM_MYSQL_SCHEME_COL)) == 0)
-			strlcpy(mysql_conn.scheme_col, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_SCHEME_COL), MAX_PARAM);
-
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_KEY, strlen(CFG_PARAM_MYSQL_KEY)) == 0)
-			strlcpy(mysql_conn.key, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_KEY), MAX_PARAM);
-
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_CERT, strlen(CFG_PARAM_MYSQL_CERT)) == 0)
-			strlcpy(mysql_conn.cert, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_CERT), MAX_PARAM);
-
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_CA, strlen(CFG_PARAM_MYSQL_CA)) == 0)
-			strlcpy(mysql_conn.ca, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_CA), MAX_PARAM);
-
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_CAPATH, strlen(CFG_PARAM_MYSQL_CAPATH)) == 0)
-			strlcpy(mysql_conn.capath, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_CAPATH), MAX_PARAM);
-
-		if (strncmp(cfg_input_str, CFG_PARAM_MYSQL_CIPHER, strlen(CFG_PARAM_MYSQL_CIPHER)) == 0)
-			strlcpy(mysql_conn.cipher, cfg_input_str + (int)strlen(CFG_PARAM_MYSQL_CIPHER), MAX_PARAM);
-#endif
-#ifdef _SQLITE_BACKEND
-		if (strncmp(cfg_input_str, CFG_PARAM_SQLITE_DATABASE, strlen(CFG_PARAM_SQLITE_DATABASE)) == 0)
-			strlcpy(sqlite_conn.database, cfg_input_str + (int)strlen(CFG_PARAM_SQLITE_DATABASE), MAX_PARAM);
-
-		if (strncmp(cfg_input_str, CFG_PARAM_SQLITE_TABLE, strlen(CFG_PARAM_SQLITE_TABLE)) == 0)
-			strlcpy(sqlite_conn.table, cfg_input_str + (int)strlen(CFG_PARAM_SQLITE_TABLE), MAX_PARAM);
-
-		if (strncmp(cfg_input_str, CFG_PARAM_SQLITE_USER_COL, strlen(CFG_PARAM_SQLITE_USER_COL)) == 0)
-			strlcpy(sqlite_conn.user_col, cfg_input_str + (int)strlen(CFG_PARAM_SQLITE_USER_COL), MAX_PARAM);
-
-		if (strncmp(cfg_input_str, CFG_PARAM_SQLITE_PASS_COL, strlen(CFG_PARAM_SQLITE_PASS_COL)) == 0)
-			strlcpy(sqlite_conn.pass_col, cfg_input_str + (int)strlen(CFG_PARAM_SQLITE_PASS_COL), MAX_PARAM);
-
-		if (strncmp(cfg_input_str, CFG_PARAM_SQLITE_SCHEME_COL, strlen(CFG_PARAM_SQLITE_SCHEME_COL)) == 0)
-			strlcpy(sqlite_conn.scheme_col, cfg_input_str + (int)strlen(CFG_PARAM_SQLITE_SCHEME_COL), MAX_PARAM);
-#endif
-		if (strncmp(cfg_input_str, CFG_PARAM_DIGEST_ALG, strlen(CFG_PARAM_DIGEST_ALG)) == 0) {
-			strlcpy(digest_alg, cfg_input_str + (int)strlen(CFG_PARAM_DIGEST_ALG), (size_t)MAX_PARAM);
-			for (i=0; i < strlen(digest_alg); i++) {
-				digest_alg[i] = (char)tolower(digest_alg[i]);
-			}
-		}
-
-		if (strncmp(cfg_input_str, CFG_PARAM_SQL_BACKEND, strlen(CFG_PARAM_SQL_BACKEND)) == 0)
-			strlcpy(sql_backend, cfg_input_str + (int)strlen(CFG_PARAM_SQL_BACKEND), MAX_PARAM);
+		parse_config(config_line);
 	}
 	/* error checkings of the file descriptor */
-	if (ferror(cfg_file_stream) != 0) {
-		syslog(LOG_ERR, "error while reading config file: %s\n", strerror(cfg_file_error));
+	if (ferror(s_config_file) != 0) {
+		syslog(LOG_ERR, "error while reading config file: %s\n", strerror(errno));
 		return(EXIT_FAILURE);
 	}
-	if(fclose(cfg_file_stream) != 0)
+	if(fclose(s_config_file) != 0)
 		syslog(LOG_ERR, "error closing config file: %s\n", strerror(errno));
+
+
+	/* validate the configuration */
+	if (!check_config()) {
+		syslog(LOG_ERR, "error parsing configuration!\n");
+		return(EXIT_FAILURE);
+	}
 
 
 	/* we write the queried password to the 'password' variable
 	 * in one of the following database specific functions */
 #ifdef _PGSQL_BACKEND
-	if (strncmp(sql_backend, "pgsql", strlen("pgsql")) == 0)
-		pgsql_check(got_username, password, digest_alg, &pgsql_conn);
+	if (strcmp(cfg.sql_backend, "pgsql") == 0)
+		pgsql_check(got_username, password, &cfg, &cfg_pgsql);
 	else
 #endif
 #ifdef _MYSQL_BACKEND
-	if (strncmp(sql_backend, "mysql", strlen("mysql")) == 0)
-		mysql_check(got_username, password, digest_alg, &mysql_conn);
+	if (strcmp(cfg.sql_backend, "mysql") == 0)
+		mysql_check(got_username, password, &cfg, &cfg_mysql);
 	else
 #endif
 #ifdef _SQLITE_BACKEND
-	if (strncmp(sql_backend, "sqlite", strlen("sqlite")) == 0)
-		sqlite_check(got_username, password, digest_alg, &sqlite_conn);
+	if (strcmp(cfg.sql_backend, "sqlite") == 0)
+		sqlite_check(got_username, password, &cfg);
 	else
 #endif
-		syslog(LOG_ERR, "invalid sql backend: %s", sql_backend);
+	{
+		syslog(LOG_ERR, "invalid sql backend: %s", cfg.sql_backend);
+		return(EXIT_FAILURE);
+	}
 
 
 	/* apply the appropriate crypt/hash method */
 
-	if (strncmp(digest_alg, "cleartext", strlen("cleartext")) == 0) {
+	if (strcmp(cfg.pw_scheme, "cleartext") == 0) {
 		/* if the digest algorithm is cleartext, use the password as is ... */
 
 		got_password_digest_string = (char *)malloc(strlen(got_password) + 1); malloc_check(got_password_digest_string);
 		strlcpy(got_password_digest_string, got_password, strlen(got_password) + 1);
-	} else if (strncmp(digest_alg, "blowfish", strlen("blowfish")) == 0) {
+	} else if (strcmp(cfg.pw_scheme, "blowfish") == 0) {
 		/* ... if it is blowfish, use the crypt() function in blowfish
 		 * mode ...
 		 */
 
-		strlcpy(salt, password, BLOWFISH_SALT_LEN + 1);	/* extract the salt from the queried password */
+		/* extract the salt from the queried password */
+		strlcpy(salt, password, BLOWFISH_SALT_LEN + 1);
 		got_password_digest_string = crypt(got_password, salt);
 		if (!got_password_digest_string) {
 			syslog(LOG_ERR, "error encrypting password: %s\n", strerror(errno));
 			return(EXIT_FAILURE);
 		}
-	} else if (strncmp(digest_alg, "md5crypt", strlen("md5crypt")) == 0) {
+	} else if (strcmp(cfg.pw_scheme, "md5crypt") == 0) {
 		/* ... if it is md5crypt, use the crypt() function in md5 mode
 		 * ...
 		 */
@@ -295,6 +193,7 @@ sql_check(const char *got_username, const char *got_password,
 			salt[i] = password[i];
 			if (password[i] == '$')
 				di++;
+
 			i++;
 		}
 		got_password_digest_string = crypt(got_password, salt);
@@ -308,9 +207,9 @@ sql_check(const char *got_username, const char *got_password,
 		 */
 
 		OpenSSL_add_all_digests();
-		md = EVP_get_digestbyname(digest_alg);
+		md = EVP_get_digestbyname(cfg.pw_scheme);
 		if (!md) {
-			syslog(LOG_ERR, "invalid message digest algorithm: %s", digest_alg);
+			syslog(LOG_ERR, "invalid message digest algorithm: %s", cfg.pw_scheme);
 			return(EXIT_FAILURE);
 		}
 
@@ -323,18 +222,19 @@ sql_check(const char *got_username, const char *got_password,
 		got_password_digest_string = (char *)calloc(1, EVP_MAX_MD_SIZE * 2 + 1); malloc_check(got_password_digest_string);
 		digest_tmp = (char *)malloc(sizeof(got_password_digest) * 2 + 1); malloc_check(digest_tmp);
 		for(i = 0; i < md_len; i++) {
-			snprintf(digest_tmp, sizeof(got_password_digest[i]) * 2 + 1, "%02x", got_password_digest[i]);	/* copy out each hex char to a temp var */
-			strlcat(got_password_digest_string, digest_tmp, md_len * 2 + 1);	/* append the temp var to the final digest string */
+			/* copy out each hex char to a temp var */
+			snprintf(digest_tmp, sizeof(got_password_digest[i]) * 2 + 1, "%02x", got_password_digest[i]);
+			/* append the temp var to the final digest string */
+			strlcat(got_password_digest_string, digest_tmp, md_len * 2 + 1);
 		}
 		free(digest_tmp); digest_tmp = NULL;
 	}
 
 	if (	got_password_digest_string == NULL  ||
 		strlen(got_password_digest_string) == 0  ||
-		strlen(got_password) == 0) {
+		strlen(got_password) == 0)
 
 		return(EXIT_FAILURE);
-	}
 
 
 	/* compare the compiled message digest and the queried one */
@@ -343,3 +243,123 @@ sql_check(const char *got_username, const char *got_password,
 	else
 		return(EXIT_FAILURE);
 } /* int sql_check() */
+
+void
+parse_config(const char *config_line)
+{
+
+	/* Global configuration options */
+	if (strncmp(config_line, CONFIG_GLOBAL_SQL_BACKEND, strlen(CONFIG_GLOBAL_SQL_BACKEND)) == 0)
+		strlcpy(cfg.sql_backend, config_line + (int)strlen(CONFIG_GLOBAL_SQL_BACKEND), MAX_PARAM);
+
+	if (strncmp(config_line, CONFIG_GLOBAL_DB_HOST, strlen(CONFIG_GLOBAL_DB_HOST)) == 0)
+		strlcpy(cfg.db_host, config_line + (int)strlen(CONFIG_GLOBAL_DB_HOST), MAX_PARAM);
+
+	if (strncmp(config_line, CONFIG_GLOBAL_DB_PORT, strlen(CONFIG_GLOBAL_DB_PORT)) == 0)
+		sscanf(config_line + (int)strlen(CONFIG_GLOBAL_DB_PORT), "%d", &cfg.db_port);
+
+	if (strncmp(config_line, CONFIG_GLOBAL_DB_NAME, strlen(CONFIG_GLOBAL_DB_NAME)) == 0)
+		strlcpy(cfg.db_name, config_line + (int)strlen(CONFIG_GLOBAL_DB_NAME), MAX_PARAM);
+
+	if (strncmp(config_line, CONFIG_GLOBAL_DB_USERNAME, strlen(CONFIG_GLOBAL_DB_USERNAME)) == 0)
+		strlcpy(cfg.db_username, config_line + (int)strlen(CONFIG_GLOBAL_DB_USERNAME), MAX_PARAM);
+
+	if (strncmp(config_line, CONFIG_GLOBAL_DB_PASSWORD, strlen(CONFIG_GLOBAL_DB_PASSWORD)) == 0)
+		strlcpy(cfg.db_password, config_line + (int)strlen(CONFIG_GLOBAL_DB_PASSWORD), MAX_PARAM);
+
+	if (strncmp(config_line, CONFIG_GLOBAL_DB_TABLE, strlen(CONFIG_GLOBAL_DB_TABLE)) == 0)
+		strlcpy(cfg.db_table, config_line + (int)strlen(CONFIG_GLOBAL_DB_TABLE), MAX_PARAM);
+
+	if (strncmp(config_line, CONFIG_GLOBAL_COLUMN_USERNAME, strlen(CONFIG_GLOBAL_COLUMN_USERNAME)) == 0)
+		strlcpy(cfg.column_username, config_line + (int)strlen(CONFIG_GLOBAL_COLUMN_USERNAME), MAX_PARAM);
+
+	if (strncmp(config_line, CONFIG_GLOBAL_COLUMN_PASSWORD, strlen(CONFIG_GLOBAL_COLUMN_PASSWORD)) == 0)
+		strlcpy(cfg.column_password, config_line + (int)strlen(CONFIG_GLOBAL_COLUMN_PASSWORD), MAX_PARAM);
+
+	if (strncmp(config_line, CONFIG_GLOBAL_COLUMN_SCHEME, strlen(CONFIG_GLOBAL_COLUMN_SCHEME)) == 0)
+		strlcpy(cfg.column_scheme, config_line + (int)strlen(CONFIG_GLOBAL_COLUMN_SCHEME), MAX_PARAM);
+
+	if (strncmp(config_line, CONFIG_GLOBAL_COLUMN_ENABLED, strlen(CONFIG_GLOBAL_COLUMN_ENABLED)) == 0)
+		strlcpy(cfg.column_enabled, config_line + (int)strlen(CONFIG_GLOBAL_COLUMN_ENABLED), MAX_PARAM);
+
+	if (strncmp(config_line, CONFIG_GLOBAL_PW_SCHEME, strlen(CONFIG_GLOBAL_PW_SCHEME)) == 0)
+		strlcpy(cfg.pw_scheme, config_line + (int)strlen(CONFIG_GLOBAL_PW_SCHEME), MAX_PARAM);
+#ifdef _PGSQL_BACKEND
+	if (strncmp(config_line, CONFIG_PGSQL_DBCONNECTION, strlen(CONFIG_PGSQL_DBCONNECTION)) == 0)
+		strlcpy(cfg_pgsql.dbconnection, config_line + (int)strlen(CONFIG_PGSQL_DBCONNECTION), MAX_PARAM);
+#endif
+#ifdef _MYSQL_BACKEND
+	if (strncmp(config_line, CONFIG_MYSQL_KEY, strlen(CONFIG_MYSQL_KEY)) == 0)
+		strlcpy(cfg_mysql.key, config_line + (int)strlen(CONFIG_MYSQL_KEY), MAX_PARAM);
+
+	if (strncmp(config_line, CONFIG_MYSQL_CERT, strlen(CONFIG_MYSQL_CERT)) == 0)
+		strlcpy(cfg_mysql.cert, config_line + (int)strlen(CONFIG_MYSQL_CERT), MAX_PARAM);
+
+	if (strncmp(config_line, CONFIG_MYSQL_CA, strlen(CONFIG_MYSQL_CA)) == 0)
+		strlcpy(cfg_mysql.ca, config_line + (int)strlen(CONFIG_MYSQL_CA), MAX_PARAM);
+
+	if (strncmp(config_line, CONFIG_MYSQL_CAPATH, strlen(CONFIG_MYSQL_CAPATH)) == 0)
+		strlcpy(cfg_mysql.capath, config_line + (int)strlen(CONFIG_MYSQL_CAPATH), MAX_PARAM);
+
+	if (strncmp(config_line, CONFIG_MYSQL_CIPHER, strlen(CONFIG_MYSQL_CIPHER)) == 0)
+		strlcpy(cfg_mysql.cipher, config_line + (int)strlen(CONFIG_MYSQL_CIPHER), MAX_PARAM);
+#endif
+} /* parse_config() */
+
+char
+check_config(void)
+{
+	/* option specific checkings */
+
+	if (!strlen(cfg.sql_backend)) {
+		syslog(LOG_ERR, "%s is empty!", CONFIG_GLOBAL_SQL_BACKEND);
+		return(0);
+	}
+
+	if (!strlen(cfg.db_host)  &&  strcmp(cfg.sql_backend, "sqlite") != 0) {
+		syslog(LOG_ERR, "%s is empty!", CONFIG_GLOBAL_DB_HOST);
+		return(0);
+	}
+
+	if ((cfg.db_port <= 0  ||  cfg.db_port > 65535)  &&  strcmp(cfg.sql_backend, "sqlite") != 0) {
+		syslog(LOG_ERR, "%s set to an invalid port number!", CONFIG_GLOBAL_DB_PORT);
+		return(0);
+	}
+
+	if (!strlen(cfg.db_name)) {
+		syslog(LOG_ERR, "%s is empty!", CONFIG_GLOBAL_DB_NAME);
+		return(0);
+	}
+
+	if (!strlen(cfg.db_username)  &&  strcmp(cfg.sql_backend, "sqlite") != 0) {
+		syslog(LOG_ERR, "%s is empty!", CONFIG_GLOBAL_DB_USERNAME);
+		return(0);
+	}
+
+	if (!strlen(cfg.db_table)) {
+		syslog(LOG_ERR, "%s is empty!", CONFIG_GLOBAL_DB_TABLE);
+		return(0);
+	}
+
+	if (!strlen(cfg.column_username)) {
+		syslog(LOG_ERR, "%s is empty!", CONFIG_GLOBAL_COLUMN_USERNAME);
+		return(0);
+	}
+
+	if (!strlen(cfg.column_password)) {
+		syslog(LOG_ERR, "%s is empty!", CONFIG_GLOBAL_COLUMN_PASSWORD);
+		return(0);
+	}
+
+	if (!strlen(cfg.column_scheme)) {
+		syslog(LOG_ERR, "%s is empty!", CONFIG_GLOBAL_COLUMN_SCHEME);
+		return(0);
+	}
+
+	if (!strlen(cfg.column_enabled)) {
+		syslog(LOG_ERR, "%s is empty!", CONFIG_GLOBAL_COLUMN_ENABLED);
+		return(0);
+	}
+
+	return(1);
+} /* check_config() */
