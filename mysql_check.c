@@ -44,7 +44,7 @@ mysql_check(const char *got_username, char *password,
 	char		*user_col_escaped = NULL, *pass_col_escaped = NULL,
 			*scheme_col_escaped = NULL, *enabled_col_escaped = NULL,
 			*table_escaped = NULL;
-	const char	*query_tpl = "SELECT %s, %s FROM %s WHERE %s = '%s' and %s = true; --";
+	const char	*query_tpl = "SELECT %s, %s FROM %s WHERE %s = '%s' and %s = 1; --";
 	char		query_cmd[MAX_QUERY_CMD] = "";
 
 	char		username[MAX_USERNAME] = "";
