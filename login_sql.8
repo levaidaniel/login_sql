@@ -128,6 +128,14 @@ encryption algorithms, respectively.
 The special value
 .Cm cleartext
 means that the password is stored in clear text in the database, so no hashing is necessary for the password entered.
+.It Cm empty_password
+(Default: no)
+.Pp
+If
+.Cm yes
+then allow comparison of empty passwords. Otherwise
+.Nm
+refuses to authorize a login if either the supplied or queried password is empty.
 .El
 .Pp
 .Em PostgreSQL
