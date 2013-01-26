@@ -30,6 +30,8 @@
 
 #define		CONFIG_GLOBAL_PW_SCHEME		"pw_scheme="
 
+#define		CONFIG_GLOBAL_EMPTY_PASSWORD	"empty_password="
+
 
 int	sql_check(const char *, const char *, const char *);
 
@@ -50,6 +52,8 @@ typedef struct config_global {
 	char	column_enabled[MAX_PARAM];
 
 	char	pw_scheme[MAX_PARAM];
+
+	char	empty_password[MAX_PARAM];
 } config_global;
 
 #endif

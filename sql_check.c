@@ -30,6 +30,7 @@
 #endif
 
 #ifdef _MYSQL_BACKEND
+#include <sys/param.h>
 #include "mysql_check.h"
 #endif
 
@@ -55,16 +56,18 @@ config_global	cfg = {
 	"",	/* db_password */
 	"",	/* db_table */
 
-	""	/* column_username */
-	""	/* column_password */
-	""	/* column_scheme */
-	""	/* column_enabled */
+	"",	/* column_username */
+	"",	/* column_password */
+	"",	/* column_scheme */
+	"",	/* column_enabled */
 
-	""	/* pw_scheme */
+	"",	/* pw_scheme */
+
+	"no"	/* empty_password */
 };
 #ifdef _PGSQL_BACKEND
 config_pgsql	cfg_pgsql = {
-	"",	/* dbconnection */
+	""	/* dbconnection */
 };
 #endif
 #ifdef _MYSQL_BACKEND
@@ -230,9 +233,17 @@ sql_check(const char *got_username, const char *got_password,
 		free(digest_tmp); digest_tmp = NULL;
 	}
 
-	if (	got_password_digest_string == NULL  ||
+	/* empty password? */
+	if (	strcmp(cfg.empty_password, "yes") == 0  &&
+		got_password_digest_string == NULL)
+
+		got_password_digest_string = "";
+
+
+	if (	strcmp(cfg.empty_password, "yes") != 0  &&
+		(got_password_digest_string == NULL  ||
 		strlen(got_password_digest_string) == 0  ||
-		strlen(got_password) == 0)
+		strlen(got_password) == 0))
 
 		return(EXIT_FAILURE);
 
@@ -284,22 +295,27 @@ parse_config(const char *config_line)
 
 	if (strncmp(config_line, CONFIG_GLOBAL_PW_SCHEME, strlen(CONFIG_GLOBAL_PW_SCHEME)) == 0)
 		strlcpy(cfg.pw_scheme, config_line + (int)strlen(CONFIG_GLOBAL_PW_SCHEME), MAX_PARAM);
+
+	if (strncmp(config_line, CONFIG_GLOBAL_EMPTY_PASSWORD, strlen(CONFIG_GLOBAL_EMPTY_PASSWORD)) == 0)
+		strlcpy(cfg.empty_password, config_line + (int)strlen(CONFIG_GLOBAL_EMPTY_PASSWORD), MAX_PARAM);
+
 #ifdef _PGSQL_BACKEND
 	if (strncmp(config_line, CONFIG_PGSQL_DBCONNECTION, strlen(CONFIG_PGSQL_DBCONNECTION)) == 0)
 		strlcpy(cfg_pgsql.dbconnection, config_line + (int)strlen(CONFIG_PGSQL_DBCONNECTION), MAX_PARAM);
 #endif
+
 #ifdef _MYSQL_BACKEND
 	if (strncmp(config_line, CONFIG_MYSQL_KEY, strlen(CONFIG_MYSQL_KEY)) == 0)
-		strlcpy(cfg_mysql.key, config_line + (int)strlen(CONFIG_MYSQL_KEY), MAX_PARAM);
+		strlcpy(cfg_mysql.key, config_line + (int)strlen(CONFIG_MYSQL_KEY), MAXPATHLEN);
 
 	if (strncmp(config_line, CONFIG_MYSQL_CERT, strlen(CONFIG_MYSQL_CERT)) == 0)
-		strlcpy(cfg_mysql.cert, config_line + (int)strlen(CONFIG_MYSQL_CERT), MAX_PARAM);
+		strlcpy(cfg_mysql.cert, config_line + (int)strlen(CONFIG_MYSQL_CERT), MAXPATHLEN);
 
 	if (strncmp(config_line, CONFIG_MYSQL_CA, strlen(CONFIG_MYSQL_CA)) == 0)
-		strlcpy(cfg_mysql.ca, config_line + (int)strlen(CONFIG_MYSQL_CA), MAX_PARAM);
+		strlcpy(cfg_mysql.ca, config_line + (int)strlen(CONFIG_MYSQL_CA), MAXPATHLEN);
 
 	if (strncmp(config_line, CONFIG_MYSQL_CAPATH, strlen(CONFIG_MYSQL_CAPATH)) == 0)
-		strlcpy(cfg_mysql.capath, config_line + (int)strlen(CONFIG_MYSQL_CAPATH), MAX_PARAM);
+		strlcpy(cfg_mysql.capath, config_line + (int)strlen(CONFIG_MYSQL_CAPATH), MAXPATHLEN);
 
 	if (strncmp(config_line, CONFIG_MYSQL_CIPHER, strlen(CONFIG_MYSQL_CIPHER)) == 0)
 		strlcpy(cfg_mysql.cipher, config_line + (int)strlen(CONFIG_MYSQL_CIPHER), MAX_PARAM);
@@ -361,6 +377,13 @@ check_config(void)
 
 	if (!strlen(cfg.column_enabled)) {
 		syslog(LOG_ERR, "%s is empty!", CONFIG_GLOBAL_COLUMN_ENABLED);
+		return(0);
+	}
+
+	if (	strcmp(cfg.empty_password, "yes") != 0  ||
+		strcmp(cfg.empty_password, "no") != 0) {
+
+		syslog(LOG_ERR, "%s can be either yes or no!", CONFIG_GLOBAL_EMPTY_PASSWORD);
 		return(0);
 	}
 
