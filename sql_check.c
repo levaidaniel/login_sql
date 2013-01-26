@@ -321,7 +321,10 @@ check_config(void)
 		return(0);
 	}
 
-	if ((cfg.db_port <= 0  ||  cfg.db_port > 65535)  &&  strcmp(cfg.sql_backend, "sqlite") != 0) {
+	if (	(cfg.db_port <= 0  ||  cfg.db_port > 65535)  &&
+		cfg.db_host[0] != '/'  &&
+		strcmp(cfg.sql_backend, "sqlite") != 0) {
+
 		syslog(LOG_ERR, "%s set to an invalid port number!", CONFIG_GLOBAL_DB_PORT);
 		return(0);
 	}
