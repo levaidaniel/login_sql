@@ -136,6 +136,8 @@ If
 then allow comparison of empty passwords. Otherwise
 .Nm
 refuses to authorize a login if either the supplied or queried password is empty.
+.Em Note
+that with eg. OpenSSH, there is also a separate sshd_config option to permit empty passwords.
 .El
 .Pp
 .Em PostgreSQL
@@ -243,7 +245,7 @@ You can use this value for a password row if you use
 .Ql sha256
 for
 .Cm pw_scheme .
-.It Em SQL table Ql userdb :
+.It Em Sample SQL table Ql userdb :
 .Bd -literal
 CREATE TABLE userdb (
 	username text,
