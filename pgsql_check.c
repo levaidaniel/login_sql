@@ -122,14 +122,14 @@ pgsql_check(const char *got_username, char *password,
 		case PGRES_TUPLES_OK:	/* this is what we want. we got back some data */
 			pg_numrows = PQntuples(pg_result);
 			if (pg_numrows < 1) {
-				syslog(LOG_ERR, "pgsql: query returned no rows!");
+				syslog(LOG_ERR, "pgsql: query returned no row!");
 
 				PQclear(pg_result);
 				PQfinish(pg_conn);
 				return(0);
 			}
 			if (pg_numrows > 1) {
-				syslog(LOG_ERR, "pgsql: query returned more than one rows!");
+				syslog(LOG_ERR, "pgsql: query returned more than one row!");
 
 				PQclear(pg_result);
 				PQfinish(pg_conn);

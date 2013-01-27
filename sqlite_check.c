@@ -95,7 +95,7 @@ sqlite_check(const char *got_username, char *password,
 						MAX_PARAM);
 			break;
 		case SQLITE_DONE:
-			syslog(LOG_ERR, "sqlite: query returned no rows!");
+			syslog(LOG_ERR, "sqlite: query returned no row!");
 
 			sqlite3_finalize(query_prepared);
 			sqlite3_close(db);
@@ -112,7 +112,7 @@ sqlite_check(const char *got_username, char *password,
 	}
 	/* if there are more results (rows) */
 	if (sqlite3_step(query_prepared) == SQLITE_ROW) {
-		syslog(LOG_ERR, "sqlite: query returned more than one rows!");
+		syslog(LOG_ERR, "sqlite: query returned more than one row!");
 		memset(password, '\0', MAX_PASSWORD);
 
 		sqlite3_finalize(query_prepared);

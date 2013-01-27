@@ -127,14 +127,14 @@ mysql_check(const char *got_username, char *password,
 
 	mysql_numrows = mysql_num_rows(mysql_result);
 	if (mysql_numrows < 1) {
-		syslog(LOG_ERR, "mysql: query returned no rows!");
+		syslog(LOG_ERR, "mysql: query returned no row!");
 
 		mysql_free_result(mysql_result);
 		mysql_close(&mysql);
 		return(0);
 	}
 	if (mysql_numrows > 1) {
-		syslog(LOG_ERR, "mysql: query returned more than one rows!");
+		syslog(LOG_ERR, "mysql: query returned more than one row!");
 
 		mysql_free_result(mysql_result);
 		mysql_close(&mysql);
