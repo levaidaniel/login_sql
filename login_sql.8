@@ -99,9 +99,11 @@ The column's name which contains the password scheme. If not empty nor NULL, thi
 .Cm pw_scheme
 option.
 .It Cm column_enabled
+(Default: )
+.Pp
 The column's name which contains the enabled variable. This is compared to value
 .Ql true
-on backends that support the boolean type, and to 1 where it is represented as an integer.
+on backends that support the boolean type, and to 1 where it is represented as an integer. If this parameter is omitted or its value is empty (default), don't use an enabled column when authenticating a user.
 .It Cm pw_scheme
 The message digest or encryption algorithm to use with the user supplied password. This will be the default, which can be overridden with a
 .Cm column_scheme

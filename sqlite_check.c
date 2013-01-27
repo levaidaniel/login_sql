@@ -29,10 +29,7 @@
 #include "sqlite_check.h"
 
 
-int sqlite_cb(void *, int, char *[], char *[]);
-
-
-void
+char
 sqlite_check(const char *got_username, char *password,
 		config_global *cfg)
 {
@@ -49,7 +46,7 @@ sqlite_check(const char *got_username, char *password,
 			cfg->db_name, sqlite3_errmsg(db));
 
 		sqlite3_close(db);
-		return;
+		return(0);
 	}
 	syslog(LOG_INFO, "sqlite: opened database(%s)", cfg->db_name);
 
@@ -58,24 +55,23 @@ sqlite_check(const char *got_username, char *password,
 	 */
 	sqlite3_snprintf(MAX_QUERY_CMD, query_cmd, query_tpl,
 				cfg->column_password, cfg->column_scheme, cfg->db_table,
-				cfg->column_username, got_username, cfg->column_enabled);
+				cfg->column_username, got_username,
+				strlen(cfg->column_enabled) ? cfg->column_enabled : "1");
 
-	/* We will write the queried password to the 'password' variable
-	 * in the callback function.
-	 */
+
 	if (sqlite3_prepare_v2(db, query_cmd, MAX_QUERY_CMD, &query_prepared, NULL) != SQLITE_OK) {
-		syslog(LOG_ERR, "sqlite: error preparing statement: %s\n",
+		syslog(LOG_ERR, "sqlite: error preparing statement: %s",
 			sqlite3_errmsg(db));
 
 		sqlite3_close(db);
-		return;
+		return(0);
 	}
 	if (!query_prepared) {
-		syslog(LOG_ERR, "sqlite: error preparing statement: %s\n",
+		syslog(LOG_ERR, "sqlite: error preparing statement: %s",
 			sqlite3_errmsg(db));
 
 		sqlite3_close(db);
-		return;
+		return(0);
 	}
 
 	result = sqlite3_step(query_prepared);
@@ -99,23 +95,33 @@ sqlite_check(const char *got_username, char *password,
 						MAX_PARAM);
 			break;
 		case SQLITE_DONE:
-			syslog(LOG_ERR, "sqlite: query returned no rows!\n");
+			syslog(LOG_ERR, "sqlite: query returned no rows!");
+
+			sqlite3_finalize(query_prepared);
+			sqlite3_close(db);
+			return(0);
 			break;
 		default:
-			syslog(LOG_ERR, "sqlite: unknown error code(%d): %s\n",
+			syslog(LOG_ERR, "sqlite: unknown error code(%d): %s",
 				result, sqlite3_errmsg(db));
+
+			sqlite3_finalize(query_prepared);
+			sqlite3_close(db);
+			return(0);
 			break;
 	}
 	/* if there are more results (rows) */
 	if (sqlite3_step(query_prepared) == SQLITE_ROW) {
-		syslog(LOG_ERR, "sqlite: query returned more than one rows!\n");
+		syslog(LOG_ERR, "sqlite: query returned more than one rows!");
 		memset(password, '\0', MAX_PASSWORD);
 
 		sqlite3_finalize(query_prepared);
 		sqlite3_close(db);
-		return;
+		return(0);
 	}
 
 	sqlite3_finalize(query_prepared);
 	sqlite3_close(db);
-} /* void sqlite_check() */
+
+	return(1);
+} /* sqlite_check() */

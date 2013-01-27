@@ -27,13 +27,13 @@
 
 #include "common.h"
 
-int
+void
 malloc_check(void *p)
 {
 	if (p == NULL) {
-		printf("%s\n", strerror(ENOMEM));
-		exit(EXIT_FAILURE);
-	} else {
-		return(EXIT_SUCCESS);
+		syslog(LOG_ERR, "%s", strerror(ENOMEM));
+		fprintf(stderr, "%s\n", strerror(ENOMEM));
+		closelog();
+		exit(AUTH_FAILED);
 	}
 } /* malloc_check() */

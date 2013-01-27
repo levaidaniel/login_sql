@@ -44,7 +44,6 @@ main(int argc, char *argv[])
 	FILE		*back = NULL;
 	int		mode = 0, c, count = 0;
 	char		response[MAX_PASSWORD];
-	int		sql_check_ret = EXIT_FAILURE;
 	char		*class = NULL, *username = NULL, *password = NULL;
 	char		*config_file = NULL;
 
@@ -163,19 +162,15 @@ main(int argc, char *argv[])
 	login_close(lc);
 
 	/* check against SQL */
-	sql_check_ret = sql_check(username, password, config_file);
-	if (sql_check_ret == EXIT_SUCCESS) {
+	if (sql_check(username, password, config_file)) {
 		fprintf(back, BI_AUTH "\n");
 		syslog(LOG_NOTICE, "authorize ok for %s\n", username);
 
 		closelog();
 		exit(AUTH_OK);
-	} else if (sql_check_ret == EXIT_FAILURE) {
-		fprintf(back, BI_REJECT "\n");
-		syslog(LOG_NOTICE, "authorize fail for %s\n", username);
 	} else {
 		fprintf(back, BI_REJECT "\n");
-		syslog(LOG_ERR, "unkown error in authorization\n");
+		syslog(LOG_NOTICE, "authorize fail for %s\n", username);
 	}
 
 	closelog();

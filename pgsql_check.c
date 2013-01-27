@@ -29,7 +29,7 @@
 #include "pgsql_check.h"
 
 
-void
+char
 pgsql_check(const char *got_username, char *password,
 		config_global *cfg, config_pgsql *cfg_pgsql)
 {
@@ -52,6 +52,9 @@ pgsql_check(const char *got_username, char *password,
 	char		*username_escaped = NULL;
 
 
+	/* Construct the PostgreSQL conninfo string from the given database parameters,
+	 * and append the extra 'dbconnection=' configuration parameter's value.
+	 */
 	snprintf(dbconnection, sizeof(dbconnection),
 			"host=%s port=%u dbname=%s user=%s password=%s %s",
 			cfg->db_host, cfg->db_port, cfg->db_name, cfg->db_username, cfg->db_password,
@@ -64,16 +67,16 @@ pgsql_check(const char *got_username, char *password,
 		case CONNECTION_OK:
 			break;
 		case CONNECTION_BAD:
-			syslog(LOG_ERR, "pgsql: connection is not complete to %s(%s)!\n\t%s\n",
+			syslog(LOG_ERR, "pgsql: connection is not complete to %s(%s)!\n\t%s",
 				cfg->db_host, cfg->db_name, PQerrorMessage(pg_conn));
 
 			PQfinish(pg_conn);
-			return;
+			return(0);
 		default:
-			syslog(LOG_ERR, "pgsql: connection state is unknown when connecting to %s(%s)!\n\t%s\n",
+			syslog(LOG_ERR, "pgsql: connection state is unknown when connecting to %s(%s)!\n\t%s",
 				cfg->db_host, cfg->db_name, PQerrorMessage(pg_conn));
 
-			return;
+			return(0);
 	}
 	syslog(LOG_INFO, "pgsql: connected to %s(%s)", cfg->db_host, cfg->db_name);
 
@@ -88,8 +91,10 @@ pgsql_check(const char *got_username, char *password,
 	scheme_col_escaped = malloc(strlen(cfg->column_scheme) * 2 + 1); malloc_check(scheme_col_escaped);
 	PQescapeStringConn(pg_conn, scheme_col_escaped, cfg->column_scheme, strlen(cfg->column_scheme), NULL);
 
-	enabled_col_escaped = malloc(strlen(cfg->column_enabled) * 2 + 1); malloc_check(enabled_col_escaped);
-	PQescapeStringConn(pg_conn, enabled_col_escaped, cfg->column_enabled, strlen(cfg->column_enabled), NULL);
+	if (strlen(cfg->column_enabled)) {
+		enabled_col_escaped = malloc(strlen(cfg->column_enabled) * 2 + 1); malloc_check(enabled_col_escaped);
+		PQescapeStringConn(pg_conn, enabled_col_escaped, cfg->column_enabled, strlen(cfg->column_enabled), NULL);
+	}
 
 	table_escaped = malloc(strlen(cfg->db_table) * 2 + 1); malloc_check(table_escaped);
 	PQescapeStringConn(pg_conn, table_escaped, cfg->db_table, strlen(cfg->db_table), NULL);
@@ -101,7 +106,8 @@ pgsql_check(const char *got_username, char *password,
 	/* fill the template sql command with the required fields */
 	snprintf(query_cmd, MAX_QUERY_CMD, query_tpl,
 			pass_col_escaped, scheme_col_escaped, table_escaped,
-			user_col_escaped, username_escaped, enabled_col_escaped);
+			user_col_escaped, username_escaped,
+			strlen(cfg->column_enabled) ? enabled_col_escaped : "true");
 
 	free(user_col_escaped); user_col_escaped = NULL;
 	free(pass_col_escaped); pass_col_escaped = NULL;
@@ -116,18 +122,18 @@ pgsql_check(const char *got_username, char *password,
 		case PGRES_TUPLES_OK:	/* this is what we want. we got back some data */
 			pg_numrows = PQntuples(pg_result);
 			if (pg_numrows < 1) {
-				syslog(LOG_ERR, "pgsql: query returned no rows!\n");
+				syslog(LOG_ERR, "pgsql: query returned no rows!");
 
 				PQclear(pg_result);
 				PQfinish(pg_conn);
-				return;
+				return(0);
 			}
 			if (pg_numrows > 1) {
-				syslog(LOG_ERR, "pgsql: query returned more than one rows!\n");
+				syslog(LOG_ERR, "pgsql: query returned more than one rows!");
 
 				PQclear(pg_result);
 				PQfinish(pg_conn);
-				return;
+				return(0);
 			}
 
 			if (	PQgetlength(pg_result, 0, 0) > 0  &&
@@ -146,31 +152,57 @@ pgsql_check(const char *got_username, char *password,
 
 			break;
 		case PGRES_COMMAND_OK:
-			syslog(LOG_ERR, "pgsql: command result OK(%s) - but no data has been returned!\n",
+			syslog(LOG_ERR, "pgsql: command result OK(%s) - but no data has been returned!",
 				PQresStatus(pg_result_status));
+
+			PQclear(pg_result);
+			PQfinish(pg_conn);
+			return(0);
 			break;
 		case PGRES_EMPTY_QUERY:
-			syslog(LOG_ERR, "pgsql: command result ERROR(%s) - empty command string.\n",
+			syslog(LOG_ERR, "pgsql: command result ERROR(%s) - empty command string.",
 				PQresStatus(pg_result_status));
+
+			PQclear(pg_result);
+			PQfinish(pg_conn);
+			return(0);
 			break;
 		case PGRES_BAD_RESPONSE:
-			syslog(LOG_ERR, "pgsql: command result ERROR(%s) - bad response from server.\n",
+			syslog(LOG_ERR, "pgsql: command result ERROR(%s) - bad response from server.",
 				PQresStatus(pg_result_status));
+
+			PQclear(pg_result);
+			PQfinish(pg_conn);
+			return(0);
 			break;
 		case PGRES_NONFATAL_ERROR:
-			syslog(LOG_ERR, "pgsql: command result ERROR(%s) - non fatal error occured.\n",
+			syslog(LOG_ERR, "pgsql: command result ERROR(%s) - non fatal error occured.",
 				PQresStatus(pg_result_status));
+
+			PQclear(pg_result);
+			PQfinish(pg_conn);
+			return(0);
 			break;
 		case PGRES_FATAL_ERROR:
-			syslog(LOG_ERR, "pgsql: command result ERROR(%s) - fatal error occured.\n",
+			syslog(LOG_ERR, "pgsql: command result ERROR(%s) - fatal error occured.",
 				PQresStatus(pg_result_status));
+
+			PQclear(pg_result);
+			PQfinish(pg_conn);
+			return(0);
 			break;
 		default:
-			syslog(LOG_ERR, "pgsql: command result unknown(%s)\n",
+			syslog(LOG_ERR, "pgsql: command result unknown(%s)",
 				PQresStatus(pg_result_status));
+
+			PQclear(pg_result);
+			PQfinish(pg_conn);
+			return(0);
 			break;
 	}
 
 	PQclear(pg_result);
 	PQfinish(pg_conn);
-} /* void pgsql_check() */
+
+	return(1);
+} /* pgsql_check() */

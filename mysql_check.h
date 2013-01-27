@@ -20,6 +20,6 @@ typedef struct config_mysql {
 } config_mysql;
 
 
-void	mysql_check(const char *, char *, config_global *, config_mysql *);
+char	mysql_check(const char *, char *, config_global *, config_mysql *);
 
 #endif

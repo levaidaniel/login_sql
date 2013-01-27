@@ -85,7 +85,7 @@ void parse_config(const char *config_line);
 char check_config(void);
 
 
-int
+char
 sql_check(const char *got_username, const char *got_password,
 		const char *config_file)
 {
@@ -113,8 +113,8 @@ sql_check(const char *got_username, const char *got_password,
 
 	s_config_file = fopen(config_file, "r");
 	if (s_config_file == NULL) {
-		syslog(LOG_ERR, "error opening %s: %s\n", config_file, strerror(errno));
-		return(EXIT_FAILURE);
+		syslog(LOG_ERR, "error opening %s: %s", config_file, strerror(errno));
+		return(0);
 	}
 
 	/* parse the config file */
@@ -127,40 +127,46 @@ sql_check(const char *got_username, const char *got_password,
 	}
 	/* error checkings of the file descriptor */
 	if (ferror(s_config_file) != 0) {
-		syslog(LOG_ERR, "error while reading config file: %s\n", strerror(errno));
-		return(EXIT_FAILURE);
+		syslog(LOG_ERR, "error while reading config file: %s", strerror(errno));
+		return(0);
 	}
 	if(fclose(s_config_file) != 0)
-		syslog(LOG_ERR, "error closing config file: %s\n", strerror(errno));
+		syslog(LOG_ERR, "error closing config file: %s", strerror(errno));
 
 
 	/* validate the configuration */
 	if (!check_config()) {
-		syslog(LOG_ERR, "error parsing configuration!\n");
-		return(EXIT_FAILURE);
+		syslog(LOG_ERR, "error parsing configuration!");
+		return(0);
 	}
 
 
 	/* we write the queried password to the 'password' variable
 	 * in one of the following database specific functions */
 #ifdef _PGSQL_BACKEND
-	if (strcmp(cfg.sql_backend, "pgsql") == 0)
-		pgsql_check(got_username, password, &cfg, &cfg_pgsql);
-	else
+	if (strcmp(cfg.sql_backend, "pgsql") == 0) {
+		if(!pgsql_check(got_username, password, &cfg, &cfg_pgsql)) {
+			return(0);
+		}
+	} else
 #endif
 #ifdef _MYSQL_BACKEND
-	if (strcmp(cfg.sql_backend, "mysql") == 0)
-		mysql_check(got_username, password, &cfg, &cfg_mysql);
-	else
+	if (strcmp(cfg.sql_backend, "mysql") == 0) {
+		if(!mysql_check(got_username, password, &cfg, &cfg_mysql)) {
+			return(0);
+		}
+	} else
 #endif
 #ifdef _SQLITE_BACKEND
-	if (strcmp(cfg.sql_backend, "sqlite") == 0)
-		sqlite_check(got_username, password, &cfg);
-	else
+	if (strcmp(cfg.sql_backend, "sqlite") == 0) {
+		if(!sqlite_check(got_username, password, &cfg)) {
+			return(0);
+		}
+	} else
 #endif
 	{
 		syslog(LOG_ERR, "invalid sql backend: %s", cfg.sql_backend);
-		return(EXIT_FAILURE);
+		return(0);
 	}
 
 
@@ -210,7 +216,7 @@ sql_check(const char *got_username, const char *got_password,
 		md = EVP_get_digestbyname(cfg.pw_scheme);
 		if (!md) {
 			syslog(LOG_ERR, "invalid message digest algorithm: %s", cfg.pw_scheme);
-			return(EXIT_FAILURE);
+			return(0);
 		}
 
 		EVP_DigestInit(&mdctx, md);
@@ -230,8 +236,8 @@ sql_check(const char *got_username, const char *got_password,
 		free(digest_tmp); digest_tmp = NULL;
 	}
 	if (!got_password_digest_string) {
-		syslog(LOG_ERR, "error encrypting password: %s\n", strerror(errno));
-		return(EXIT_FAILURE);
+		syslog(LOG_ERR, "unknown error when encrypting password!");
+		return(0);
 	}
 
 
@@ -240,15 +246,15 @@ sql_check(const char *got_username, const char *got_password,
 		!strlen(got_password)  ||
 		!strlen(password)))
 
-		return(EXIT_FAILURE);
+		return(0);
 
 
 	/* compare the compiled message digest and the queried one */
 	if (strcmp(password, got_password_digest_string) == 0)
-		return(EXIT_SUCCESS);
-	else
-		return(EXIT_FAILURE);
-} /* int sql_check() */
+		return(1);
+
+	return(0);
+} /* sql_check() */
 
 void
 parse_config(const char *config_line)
@@ -367,11 +373,6 @@ check_config(void)
 
 	if (!strlen(cfg.column_scheme)) {
 		syslog(LOG_ERR, "%s is empty!", CONFIG_GLOBAL_COLUMN_SCHEME);
-		return(0);
-	}
-
-	if (!strlen(cfg.column_enabled)) {
-		syslog(LOG_ERR, "%s is empty!", CONFIG_GLOBAL_COLUMN_ENABLED);
 		return(0);
 	}
 

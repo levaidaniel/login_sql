@@ -33,7 +33,7 @@
 #define		CONFIG_GLOBAL_EMPTY_PASSWORD	"empty_password="
 
 
-int	sql_check(const char *, const char *, const char *);
+char	sql_check(const char *, const char *, const char *);
 
 
 typedef struct config_global {

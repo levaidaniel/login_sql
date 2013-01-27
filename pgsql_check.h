@@ -9,6 +9,6 @@ typedef struct config_pgsql {
 } config_pgsql;
 
 
-void	pgsql_check(const char *, char *, config_global *, config_pgsql *);
+char	pgsql_check(const char *, char *, config_global *, config_pgsql *);
 
 #endif

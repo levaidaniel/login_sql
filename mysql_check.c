@@ -29,7 +29,7 @@
 #include "mysql_check.h"
 
 
-void
+char
 mysql_check(const char *got_username, char *password,
 		config_global *cfg, config_mysql *cfg_mysql)
 {
@@ -68,7 +68,8 @@ mysql_check(const char *got_username, char *password,
 
 		syslog(LOG_ERR, "mysql: error connecting to %s(%s): %s",
 			cfg->db_host, cfg->db_name, mysql_error(&mysql));
-		return;
+
+		return(0);
 	}
 	syslog(LOG_INFO, "mysql: connected to %s(%s)", cfg->db_host, cfg->db_name);
 
@@ -83,8 +84,10 @@ mysql_check(const char *got_username, char *password,
 	scheme_col_escaped = malloc(strlen(cfg->column_scheme) * 2 + 1); malloc_check(scheme_col_escaped);
 	mysql_real_escape_string(&mysql, scheme_col_escaped, cfg->column_scheme, strlen(cfg->column_scheme));
 
-	enabled_col_escaped = malloc(strlen(cfg->column_enabled) * 2 + 1); malloc_check(enabled_col_escaped);
-	mysql_real_escape_string(&mysql, enabled_col_escaped, cfg->column_enabled, strlen(cfg->column_enabled));
+	if (strlen(cfg->column_enabled)) {
+		enabled_col_escaped = malloc(strlen(cfg->column_enabled) * 2 + 1); malloc_check(enabled_col_escaped);
+		mysql_real_escape_string(&mysql, enabled_col_escaped, cfg->column_enabled, strlen(cfg->column_enabled));
+	}
 
 	table_escaped = malloc(strlen(cfg->db_table) * 2 + 1); malloc_check(table_escaped);
 	mysql_real_escape_string(&mysql, table_escaped, cfg->db_table, strlen(cfg->db_table));
@@ -96,7 +99,8 @@ mysql_check(const char *got_username, char *password,
 	/* fill the template sql command with the required fields */
 	snprintf(query_cmd, MAX_QUERY_CMD, query_tpl,
 			pass_col_escaped, scheme_col_escaped, table_escaped,
-			user_col_escaped, username_escaped, enabled_col_escaped);
+			user_col_escaped, username_escaped,
+			strlen(cfg->column_enabled) ? enabled_col_escaped : "1");
 
 	free(user_col_escaped); user_col_escaped = NULL;
 	free(pass_col_escaped); pass_col_escaped = NULL;
@@ -108,8 +112,9 @@ mysql_check(const char *got_username, char *password,
 	/* execute the query */
 	if (mysql_query(&mysql, query_cmd) != 0) {
 		syslog(LOG_ERR, "mysql: error executing query: %s", mysql_error(&mysql));
+
 		mysql_close(&mysql);
-		return;
+		return(0);
 	}
 
 	mysql_result = mysql_store_result(&mysql);
@@ -117,7 +122,7 @@ mysql_check(const char *got_username, char *password,
 		syslog(LOG_ERR, "mysql: query returned no result");
 
 		mysql_close(&mysql);
-		return;
+		return(0);
 	}
 
 	mysql_numrows = mysql_num_rows(mysql_result);
@@ -126,14 +131,14 @@ mysql_check(const char *got_username, char *password,
 
 		mysql_free_result(mysql_result);
 		mysql_close(&mysql);
-		return;
+		return(0);
 	}
 	if (mysql_numrows > 1) {
 		syslog(LOG_ERR, "mysql: query returned more than one rows!");
 
 		mysql_free_result(mysql_result);
 		mysql_close(&mysql);
-		return;
+		return(0);
 	}
 
 	if ((mysql_row = mysql_fetch_row(mysql_result))) {
@@ -144,7 +149,7 @@ mysql_check(const char *got_username, char *password,
 
 			mysql_free_result(mysql_result);
 			mysql_close(&mysql);
-			return;
+			return(0);
 		}
 
 		if (mysql_lengths[0] > 0)
@@ -161,4 +166,6 @@ mysql_check(const char *got_username, char *password,
 
 	mysql_free_result(mysql_result);
 	mysql_close(&mysql);
-} /* void mysql_check() */
+
+	return(1);
+} /* mysql_check() */
