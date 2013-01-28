@@ -29,6 +29,9 @@
 #include "mysql_check.h"
 
 
+char	mysql_quit(MYSQL *, MYSQL_RES *, char);
+
+
 char
 mysql_check(const char *got_username, char *password,
 		config_global *cfg, config_mysql *cfg_mysql)
@@ -113,43 +116,38 @@ mysql_check(const char *got_username, char *password,
 	if (mysql_query(&mysql, query_cmd) != 0) {
 		syslog(LOG_ERR, "mysql: error executing query: %s", mysql_error(&mysql));
 
-		mysql_close(&mysql);
-		return(0);
+		return(mysql_quit(&mysql, mysql_result, 0));
 	}
 
 	mysql_result = mysql_store_result(&mysql);
 	if (!mysql_result) {
 		syslog(LOG_ERR, "mysql: query returned no result");
 
-		mysql_close(&mysql);
-		return(0);
+		return(mysql_quit(&mysql, mysql_result, 0));
 	}
 
 	mysql_numrows = mysql_num_rows(mysql_result);
 	if (mysql_numrows < 1) {
 		syslog(LOG_ERR, "mysql: query returned no row!");
 
-		mysql_free_result(mysql_result);
-		mysql_close(&mysql);
-		return(0);
+		return(mysql_quit(&mysql, mysql_result, 0));
 	}
 	if (mysql_numrows > 1) {
 		syslog(LOG_ERR, "mysql: query returned more than one row!");
 
-		mysql_free_result(mysql_result);
-		mysql_close(&mysql);
-		return(0);
+		return(mysql_quit(&mysql, mysql_result, 0));
 	}
 
+	/* Got what we wanted, this is the only place
+	 * where we would give back AUTH_OK
+	 */
 	if ((mysql_row = mysql_fetch_row(mysql_result))) {
 		mysql_lengths = mysql_fetch_lengths(mysql_result);
 		if (mysql_lengths == NULL) {
 			syslog(LOG_ERR, "mysql: error getting column lengths: %s",
 				mysql_error(&mysql));
 
-			mysql_free_result(mysql_result);
-			mysql_close(&mysql);
-			return(0);
+			return(mysql_quit(&mysql, mysql_result, 0));
 		}
 
 		if (mysql_lengths[0] > 0)
@@ -162,10 +160,20 @@ mysql_check(const char *got_username, char *password,
 			 * write the queried scheme to the 'cfg->pw_scheme' variable
 			 */
 			strlcpy(cfg->pw_scheme, mysql_row[1], MAX_PARAM);
+
+		return(mysql_quit(&mysql, mysql_result, 1));
 	}
 
-	mysql_free_result(mysql_result);
-	mysql_close(&mysql);
-
-	return(1);
+	return(mysql_quit(&mysql, mysql_result, 0));
 } /* mysql_check() */
+
+char
+mysql_quit(MYSQL *mysql, MYSQL_RES *mysql_result, char retval)
+{
+	if (mysql_result)
+		mysql_free_result(mysql_result);
+
+	mysql_close(&(*mysql));
+
+	return(retval);
+} /* mysql_quit() */

@@ -29,6 +29,9 @@
 #include "pgsql_check.h"
 
 
+char	pgsql_quit(PGconn *, PGresult *, char);
+
+
 char
 pgsql_check(const char *got_username, char *password,
 		config_global *cfg, config_pgsql *cfg_pgsql)
@@ -70,8 +73,7 @@ pgsql_check(const char *got_username, char *password,
 			syslog(LOG_ERR, "pgsql: connection is not complete to %s(%s)!\n\t%s",
 				cfg->db_host, cfg->db_name, PQerrorMessage(pg_conn));
 
-			PQfinish(pg_conn);
-			return(0);
+			return(pgsql_quit(pg_conn, pg_result, 0));
 		default:
 			syslog(LOG_ERR, "pgsql: connection state is unknown when connecting to %s(%s)!\n\t%s",
 				cfg->db_host, cfg->db_name, PQerrorMessage(pg_conn));
@@ -119,21 +121,20 @@ pgsql_check(const char *got_username, char *password,
 	/* execute the query */
 	pg_result = PQexec(pg_conn, query_cmd);
 	switch (pg_result_status = PQresultStatus(pg_result)) {
-		case PGRES_TUPLES_OK:	/* this is what we want. we got back some data */
+		/* This is what we want, we got back some data,
+		 * this is the only place where we would give back AUTH_OK
+		 */
+		case PGRES_TUPLES_OK:
 			pg_numrows = PQntuples(pg_result);
 			if (pg_numrows < 1) {
 				syslog(LOG_ERR, "pgsql: query returned no row!");
 
-				PQclear(pg_result);
-				PQfinish(pg_conn);
-				return(0);
+				return(pgsql_quit(pg_conn, pg_result, 0));
 			}
 			if (pg_numrows > 1) {
 				syslog(LOG_ERR, "pgsql: query returned more than one row!");
 
-				PQclear(pg_result);
-				PQfinish(pg_conn);
-				return(0);
+				return(pgsql_quit(pg_conn, pg_result, 0));
 			}
 
 			if (	PQgetlength(pg_result, 0, 0) > 0  &&
@@ -150,59 +151,56 @@ pgsql_check(const char *got_username, char *password,
 				 */
 				strlcpy(cfg->pw_scheme, PQgetvalue(pg_result, 0, 1), MAX_PARAM);
 
+			return(pgsql_quit(pg_conn, pg_result, 1));
 			break;
 		case PGRES_COMMAND_OK:
 			syslog(LOG_ERR, "pgsql: command result OK(%s) - but no data has been returned!",
 				PQresStatus(pg_result_status));
 
-			PQclear(pg_result);
-			PQfinish(pg_conn);
-			return(0);
+			return(pgsql_quit(pg_conn, pg_result, 0));
 			break;
 		case PGRES_EMPTY_QUERY:
 			syslog(LOG_ERR, "pgsql: command result ERROR(%s) - empty command string.",
 				PQresStatus(pg_result_status));
 
-			PQclear(pg_result);
-			PQfinish(pg_conn);
-			return(0);
+			return(pgsql_quit(pg_conn, pg_result, 0));
 			break;
 		case PGRES_BAD_RESPONSE:
 			syslog(LOG_ERR, "pgsql: command result ERROR(%s) - bad response from server.",
 				PQresStatus(pg_result_status));
 
-			PQclear(pg_result);
-			PQfinish(pg_conn);
-			return(0);
+			return(pgsql_quit(pg_conn, pg_result, 0));
 			break;
 		case PGRES_NONFATAL_ERROR:
 			syslog(LOG_ERR, "pgsql: command result ERROR(%s) - non fatal error occured.",
 				PQresStatus(pg_result_status));
 
-			PQclear(pg_result);
-			PQfinish(pg_conn);
-			return(0);
+			return(pgsql_quit(pg_conn, pg_result, 0));
 			break;
 		case PGRES_FATAL_ERROR:
 			syslog(LOG_ERR, "pgsql: command result ERROR(%s) - fatal error occured.",
 				PQresStatus(pg_result_status));
 
-			PQclear(pg_result);
-			PQfinish(pg_conn);
-			return(0);
+			return(pgsql_quit(pg_conn, pg_result, 0));
 			break;
 		default:
 			syslog(LOG_ERR, "pgsql: command result unknown(%s)",
 				PQresStatus(pg_result_status));
 
-			PQclear(pg_result);
-			PQfinish(pg_conn);
-			return(0);
+			return(pgsql_quit(pg_conn, pg_result, 0));
 			break;
 	}
 
-	PQclear(pg_result);
+	return(pgsql_quit(pg_conn, pg_result, 0));
+} /* pgsql_check() */
+
+char
+pgsql_quit(PGconn *pg_conn, PGresult *pg_result, char retval)
+{
+	if (pg_result)
+		PQclear(pg_result);
+
 	PQfinish(pg_conn);
 
-	return(1);
-} /* pgsql_check() */
+	return(retval);
+} /* pgsql_quit() */

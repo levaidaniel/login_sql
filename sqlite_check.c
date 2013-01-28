@@ -29,12 +29,15 @@
 #include "sqlite_check.h"
 
 
+char	sqlite_quit(sqlite3 *, sqlite3_stmt *, char);
+
+
 char
 sqlite_check(const char *got_username, char *password,
 		config_global *cfg)
 {
 	sqlite3		*db = NULL;
-	sqlite3_stmt	*query_prepared;
+	sqlite3_stmt	*query_prepared = NULL;
 
 	int		result = -1;
 	const char	*query_tpl = "SELECT %q, %q FROM %q WHERE %q = '%q' and %q = 1; --";
@@ -45,8 +48,7 @@ sqlite_check(const char *got_username, char *password,
 		syslog(LOG_ERR, "sqlite: can not open database %s: %s",
 			cfg->db_name, sqlite3_errmsg(db));
 
-		sqlite3_close(db);
-		return(0);
+		return(sqlite_quit(db, query_prepared, 0));
 	}
 	syslog(LOG_INFO, "sqlite: opened database(%s)", cfg->db_name);
 
@@ -63,20 +65,22 @@ sqlite_check(const char *got_username, char *password,
 		syslog(LOG_ERR, "sqlite: error preparing statement: %s",
 			sqlite3_errmsg(db));
 
-		sqlite3_close(db);
-		return(0);
+		return(sqlite_quit(db, query_prepared, 0));
 	}
 	if (!query_prepared) {
 		syslog(LOG_ERR, "sqlite: error preparing statement: %s",
 			sqlite3_errmsg(db));
 
-		sqlite3_close(db);
-		return(0);
+		return(sqlite_quit(db, query_prepared, 0));
 	}
 
 	result = sqlite3_step(query_prepared);
 	switch (result) {
 		case SQLITE_ROW:
+		/*
+		 * This must be the only place in the switch()
+		 * where we don't quit from sqlite_check().
+		 */
 			if (sqlite3_column_text(query_prepared, 0) != NULL)
 				if (strlen((const char *)sqlite3_column_text(query_prepared, 0)) > 0)
 					/* write the queried password to the 'password' variable */
@@ -97,17 +101,13 @@ sqlite_check(const char *got_username, char *password,
 		case SQLITE_DONE:
 			syslog(LOG_ERR, "sqlite: query returned no row!");
 
-			sqlite3_finalize(query_prepared);
-			sqlite3_close(db);
-			return(0);
+			return(sqlite_quit(db, query_prepared, 0));
 			break;
 		default:
 			syslog(LOG_ERR, "sqlite: unknown error code(%d): %s",
 				result, sqlite3_errmsg(db));
 
-			sqlite3_finalize(query_prepared);
-			sqlite3_close(db);
-			return(0);
+			return(sqlite_quit(db, query_prepared, 0));
 			break;
 	}
 	/* if there are more results (rows) */
@@ -115,13 +115,24 @@ sqlite_check(const char *got_username, char *password,
 		syslog(LOG_ERR, "sqlite: query returned more than one row!");
 		memset(password, '\0', MAX_PASSWORD);
 
-		sqlite3_finalize(query_prepared);
-		sqlite3_close(db);
-		return(0);
-	}
+		return(sqlite_quit(db, query_prepared, 0));
+	} else
+		/*
+		 * This is the only place where we would give back AUTH_OK
+		 */
+		return(sqlite_quit(db, query_prepared, 1));
 
-	sqlite3_finalize(query_prepared);
+
+	return(sqlite_quit(db, query_prepared, 0));
+} /* sqlite_check() */
+
+char
+sqlite_quit(sqlite3 *db, sqlite3_stmt *query_prepared, char retval)
+{
+	if (query_prepared)
+		sqlite3_finalize(query_prepared);
+
 	sqlite3_close(db);
 
-	return(1);
-} /* sqlite_check() */
+	return(retval);
+} /* sqlite_quit() */
