@@ -11,7 +11,7 @@
 #define	AUTH_OK		0
 #define	AUTH_FAILED	-1
 
-#define	VERSION	"1.4-dev"
+#define	VERSION	"1.5-dev"
 
 void	malloc_check(void *);
 
