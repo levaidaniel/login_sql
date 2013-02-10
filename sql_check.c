@@ -95,8 +95,7 @@ sql_check(const char *got_username, const char *got_password,
 	/* the db specific functions will (over)write the password to this variable */
 	char		password[MAX_PASSWORD] = "";
 
-	/* to be used with crypt() */
-	char		salt[BLOWFISH_SALT_LEN + 1] = "";
+	char		*salt = NULL;
 
 	/* OpenSSL stuff for the message digest algorithms */
 	EVP_MD_CTX	mdctx;
@@ -105,6 +104,16 @@ sql_check(const char *got_username, const char *got_password,
 	char		*got_password_digest_string = NULL;
 	char		*digest_tmp = NULL;
 	unsigned int	md_len = 0, i = 0, di = 0;
+
+	BIO		*bio_mem = NULL;
+	BIO		*bio_b64 = NULL;
+	BIO		*bio_chain = NULL;
+	unsigned int	bio_delay_check = 0;
+	unsigned int	bio_delay_max = 1000;
+	unsigned int	bio_read_chunk = 128;
+
+	char		*password_digest = NULL, *got_password_salted = NULL, *got_password_digest_salted = NULL;
+	int		ret = 0;
 
 
 	/* if there was no config file defined in login.conf(5), use the default filename */
@@ -187,26 +196,199 @@ sql_check(const char *got_username, const char *got_password,
 		 * mode ...
 		 */
 
+		salt = malloc(CRYPT_SALT_LEN + 1); malloc_check(salt);
+
 		/* extract the salt from the queried password */
-		strlcpy(salt, password, BLOWFISH_SALT_LEN + 1);
+		strlcpy(salt, password, CRYPT_SALT_LEN + 1);
 		got_password_digest_string = crypt(got_password, salt);
 	} else if (strcmp(cfg.pw_scheme, "md5crypt") == 0) {
 		/* ... if it is md5crypt, use the crypt() function in md5 mode
 		 * ...
 		 */
 
+		salt = malloc(CRYPT_SALT_LEN + 1); malloc_check(salt);
+
 		/* extract the salt from the queried password
 		 * It spans from the first character until the third '$' sign.
 		 */
 		i = 0; di = 0;
-		while (di != 3  &&  i <= strlen(password)  &&  i < BLOWFISH_SALT_LEN + 1) {
+		while (di != 3  &&  i <= strlen(password)  &&  i < CRYPT_SALT_LEN + 1) {
 			salt[i] = password[i];
 			if (password[i] == '$')
 				di++;
 
 			i++;
 		}
+		salt[i] = '\0';
+
 		got_password_digest_string = crypt(got_password, salt);
+	} else if (	strcmp(cfg.pw_scheme, "ssha1") == 0  ||
+			strcmp(cfg.pw_scheme, "ssha256") == 0  ||
+			strcmp(cfg.pw_scheme, "ssha512") == 0) {
+
+		/*
+		 * ... Salted SHA digests using openssl, but salting manually.
+		 * ...
+		 */
+
+		OpenSSL_add_all_digests();
+		md = EVP_get_digestbyname(cfg.pw_scheme + 1);
+		if (!md) {
+			syslog(LOG_ERR, "invalid message digest algorithm: %s", cfg.pw_scheme);
+			return(0);
+		}
+
+
+		bio_mem = BIO_new(BIO_s_mem());
+		if (!bio_mem) {
+			syslog(LOG_ERR, "could not setup base64 decoding (bio_mem)");
+			return(0);
+		}
+		bio_chain = BIO_push(bio_mem, bio_chain);
+
+		bio_b64 = BIO_new(BIO_f_base64());
+		if (!bio_b64) {
+			syslog(LOG_ERR, "could not setup base64 decoding (bio_b64)");
+
+			BIO_free_all(bio_chain);
+			return(0);
+		}
+		BIO_set_flags(bio_b64, BIO_FLAGS_BASE64_NO_NL);
+		bio_chain = BIO_push(bio_b64, bio_chain);
+
+
+		/* base64 DEcode the queried password digest */
+		BIO_reset(bio_chain);
+		BIO_write(bio_mem, password, strlen(password));
+		BIO_flush(bio_chain);
+		do {
+			/* Safeguard against BIO_read() delay inflicted infinite loops */
+			if (bio_delay_check >= bio_delay_max) {
+				syslog(LOG_ERR, "too much delay during base64 decoding (#1)");
+
+				free(password_digest); password_digest = NULL;
+				BIO_free_all(bio_chain);
+				return(0);
+			}
+
+			password_digest = realloc(password_digest, i + bio_read_chunk);
+			ret = BIO_read(bio_chain, password_digest + i, bio_read_chunk);
+			switch (ret) {
+				case 0:
+					if (BIO_should_retry(bio_chain)) {
+						bio_delay_check++;
+						continue;
+					}
+				break;
+				case -1:
+					if (BIO_should_retry(bio_chain)) {
+						bio_delay_check++;
+						continue;
+					} else {
+						syslog(LOG_ERR, "error during base64 decoding of the queried password (-1)");
+
+						free(password_digest); password_digest = NULL;
+						BIO_free_all(bio_chain);
+						return(0);
+					}
+				break;
+				case -2:
+					syslog(LOG_ERR, "error during base64 decoding of the queried password (-2)");
+
+					free(password_digest); password_digest = NULL;
+					BIO_free_all(bio_chain);
+					return(0);
+				break;
+				default:
+					i += ret;
+				break;
+			}
+		} while (ret > 0);
+
+
+		/* Extract the salt from the queried password digest */
+		salt = malloc(SSHA_SALT_LEN); malloc_check(salt);
+		memcpy(salt, password_digest, SSHA_SALT_LEN);
+
+		free(password_digest); password_digest = NULL;
+
+
+		/* Construct a salted version of the gotten password from salt + got_password */
+		got_password_salted = malloc(SSHA_SALT_LEN + strlen(got_password) + 1); malloc_check(got_password_salted);
+		memcpy(got_password_salted, salt, SSHA_SALT_LEN);
+		memcpy(got_password_salted + SSHA_SALT_LEN, got_password, strlen(got_password));
+		got_password_salted[SSHA_SALT_LEN + strlen(got_password)] = '\0';
+
+
+		/* Process the salted gotten password with the digest algorithm */
+		EVP_DigestInit(&mdctx, md);
+		EVP_DigestUpdate(&mdctx, got_password_salted, strlen(got_password_salted));
+		EVP_DigestFinal(&mdctx, got_password_digest, &md_len);
+		EVP_MD_CTX_cleanup(&mdctx);
+
+		got_password_digest_salted = malloc(SSHA_SALT_LEN + md_len); malloc_check(got_password_digest_salted);
+		memcpy(got_password_digest_salted, salt, SSHA_SALT_LEN);
+		memcpy(got_password_digest_salted + SSHA_SALT_LEN, got_password_digest, md_len);
+
+		free(salt); salt = NULL;
+		free(got_password_salted); got_password_salted = NULL;
+
+
+		/* base64 ENcode the generated digest */
+		BIO_reset(bio_chain);
+		BIO_write(bio_chain, got_password_digest_salted, SSHA_SALT_LEN + md_len);
+		BIO_flush(bio_chain);
+
+		free(got_password_digest_salted); got_password_digest_salted = NULL;
+
+		/* Read back the base64 encoded string */
+		i = 0; bio_delay_check = 0;
+		do {
+			/* Safeguard against BIO_read() delay inflicted infinite loops */
+			if (bio_delay_check >= bio_delay_max) {
+				syslog(LOG_ERR, "too much delay during base64 encoding (#2)");
+
+				free(got_password_digest_string); got_password_digest_string = NULL;
+				BIO_free_all(bio_chain);
+				return(0);
+			}
+
+			got_password_digest_string = realloc(got_password_digest_string, i + bio_read_chunk);
+			ret = BIO_read(bio_mem, got_password_digest_string + i, bio_read_chunk);
+			switch (ret) {
+				case 0:
+					if (BIO_should_retry(bio_mem)) {
+						bio_delay_check++;
+						continue;
+					}
+				break;
+				case -1:
+					if (BIO_should_retry(bio_mem)) {
+						bio_delay_check++;
+						continue;
+					} else {
+						syslog(LOG_ERR, "error during base64 encoding of the redigested password (-1)");
+
+						free(got_password_digest_string); got_password_digest_string = NULL;
+						BIO_free_all(bio_chain);
+						return(0);
+					}
+				break;
+				case -2:
+					syslog(LOG_ERR, "error during base64 encoding of the redigested password (-2)");
+
+					free(got_password_digest_string); got_password_digest_string = NULL;
+					BIO_free_all(bio_chain);
+					return(0);
+				break;
+				default:
+					i += ret;
+				break;
+			}
+		} while (ret > 0);
+		got_password_digest_string[i] = '\0';
+
+		BIO_free_all(bio_chain);
 	} else {
 		/* ... if something else, then pass it to openssl, and see if it
 		 * can make something out of it :)

@@ -10,7 +10,8 @@
 #define		MAX_USERNAME		128
 #define		MAX_PASSWORD		128
 
-#define		BLOWFISH_SALT_LEN	29
+#define		CRYPT_SALT_LEN		29
+#define		SSHA_SALT_LEN		4
 
 #define		CONFIG_FILE_DEFAULT		"/etc/login_sql.conf"
 
