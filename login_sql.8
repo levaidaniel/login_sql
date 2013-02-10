@@ -101,7 +101,7 @@ option.
 .It Cm column_enabled
 (Default: )
 .Pp
-The column's name which contains the enabled variable. This is compared to value
+The column's name which contains the enabled variable. This can be used to control if a user is allowed to login or not. This is compared to value
 .Ql true
 on backends that support the boolean type, and to 1 where it is represented as an integer. If this parameter is omitted or its value is empty (default), don't use an enabled column when authenticating a user.
 .It Cm pw_scheme
@@ -237,6 +237,44 @@ column_enabled=enabled
 
 pw_scheme=sha256
 .Ed
+.It Em Generating a blowfish password with encrypt(1) :
+.Bd -literal
+$ encrypt s3cr3t
+$2a$06$.sqd/Wevf1C6B520zdshB.1lNPGE/FkqK3/O9p0uj7lzVofPtBpJu
+.Ed
+.Pp
+You can use this value for a password row if you use
+.Ql blowfish
+for
+.Cm pw_scheme .
+.It Em Generating salted sha passwords with login_sql_pw(1) :
+.Bd -literal
+$ login_sql_pw -a ssha1 -p sha1s3cr3t
+saZ6GV5M5ZPKBeBxRE2eh2FFR4mLTeDk
+$ login_sql_pw -a ssha256 -p sha256s3cr3t
+PwsMI5v86ycSdJGudPigVdE73GbeAHhnkZaSOrpRw6KnVfvU
+$ login_sql_pw -a ssha512
+Password:
+JLacuTMLsCou5OPk92Jclw/QSIDrMqg+PIAfd3XHavoCLNp1OPm9zKPrwA7J+wVO3SCWXU5MapnBQdYFOJlP7rlr6rw=
+.Ed
+.Pp
+You can use these values for a password row if you use
+.Ql ssha1 ,
+.Ql ssha256
+or
+.Ql ssha512
+for
+.Cm pw_scheme .
+.It Em Generating a salted md5 password with encrypt(1) :
+.Bd -literal
+$ encrypt -m s3cr3t
+$1$EpRnA1xB$mpt54XE/LOyF18ynFuM1u/
+.Ed
+.Pp
+You can use this value for a password row if you use
+.Ql md5crypt
+for
+.Cm pw_scheme .
 .It Em Generating an sha256 hashed password with openssl(1) :
 .Bd -literal
 $ printf "s3cr3t" |openssl dgst -sha256
@@ -288,3 +326,4 @@ http://login-sql.googlecode.com
 .Xr mysql 1 ,
 .Xr sqlite3 1 ,
 .Xr openssl 1
+.Xr encrypt 1
