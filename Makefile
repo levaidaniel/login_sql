@@ -7,6 +7,7 @@ PROG =		login_sql
 MANDIR =	${LOCALBASE}/man/man
 MAN =		login_sql.8
 
+SUBDIR =	login_sql_pw
 
 SRCS =		login_sql.c sql_check.c malloc_check.c
 .ifdef PGSQL_BACKEND
