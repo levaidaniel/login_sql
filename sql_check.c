@@ -179,7 +179,37 @@ sql_check(const char *got_username, const char *got_password,
 	}
 
 
-	/* empty password? */
+	/*
+	 * Basically we think that empty strings as passwords and digested
+	 * empty strings are not equal and not the same.
+	 *
+	 * We want to avoid the case when empty password is not allowed by the
+	 * configuration parameter, and the user supplies us an empty password,
+	 * then we apply some message digest algorithm on it, but the queried
+	 * password is also a digested empty string. So then in fact we would
+	 * compare two digested empty strings, which would match because the
+	 * two strings would be equal.
+	 *
+	 * This is why we check for allowed empty passwords, and if they are
+	 * invalid, we fail to authorize if either of the supplied or queried
+	 * passwords are empty.
+	 */
+
+
+	/* If we don't allow an empty password, but either the user supplied or
+	 * the queried password is empty, then we fail to authenticate the user.
+	 */
+	if (	strcmp(cfg.empty_password, "yes") != 0  &&
+		(!strlen(got_password)  ||
+		!strlen(password)))
+
+		return(0);
+
+
+	/* Empty password is allowed, and the user supplied an empty password.
+	 * This will only match with an empty queried password (not a digested empty
+	 * string!).
+	 */
 	if (	strcmp(cfg.empty_password, "yes") == 0  &&
 		!strlen(got_password))
 
@@ -421,14 +451,12 @@ sql_check(const char *got_username, const char *got_password,
 		syslog(LOG_ERR, "unknown error when encrypting password!");
 		return(0);
 	}
-
-
 	if (	strcmp(cfg.empty_password, "yes") != 0  &&
-		(!strlen(got_password_digest_string)  ||
-		!strlen(got_password)  ||
-		!strlen(password)))
+		!strlen(got_password_digest_string)) {
 
+		syslog(LOG_ERR, "unknown error when encrypting password!");
 		return(0);
+	}
 
 
 	/* compare the compiled message digest and the queried one */
