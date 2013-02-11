@@ -41,7 +41,7 @@ sqlite_check(const char *got_username, char *password,
 
 	int		result = -1;
 	const char	*query_tpl = "SELECT %q, %q FROM %q WHERE %q = '%q' and %q = 1; --";
-	char		query_cmd[MAX_QUERY_CMD] = "";
+	char		query_cmd[MAX_QUERY_CMD + 1] = "";
 
 
 	if (sqlite3_open(cfg->db_name, &db)) {
@@ -55,13 +55,13 @@ sqlite_check(const char *got_username, char *password,
 	/* Fill the template sql command with the required fields.
 	 * Escaping done by the %q format character of sqlite3_snprintf().
 	 */
-	sqlite3_snprintf(MAX_QUERY_CMD, query_cmd, query_tpl,
+	sqlite3_snprintf(sizeof(query_cmd), query_cmd, query_tpl,
 				cfg->column_password, cfg->column_scheme, cfg->db_table,
 				cfg->column_username, got_username,
 				strlen(cfg->column_enabled) ? cfg->column_enabled : "1");
 
 
-	if (sqlite3_prepare_v2(db, query_cmd, MAX_QUERY_CMD, &query_prepared, NULL) != SQLITE_OK) {
+	if (sqlite3_prepare_v2(db, query_cmd, strlen(query_cmd), &query_prepared, NULL) != SQLITE_OK) {
 		syslog(LOG_ERR, "sqlite: error preparing statement: %s",
 			sqlite3_errmsg(db));
 
@@ -86,7 +86,7 @@ sqlite_check(const char *got_username, char *password,
 					/* write the queried password to the 'password' variable */
 					strlcpy(password,
 						(const char *)sqlite3_column_text(query_prepared, 0),
-						MAX_PASSWORD);
+						MAX_PASSWORD + 1);
 
 			if (sqlite3_column_text(query_prepared, 1) != NULL)
 				if (strlen((const char *)sqlite3_column_text(query_prepared, 1)) > 0)
@@ -96,7 +96,7 @@ sqlite_check(const char *got_username, char *password,
 					 */
 					strlcpy(cfg->pw_scheme,
 						(const char *)sqlite3_column_text(query_prepared, 1),
-						MAX_PARAM);
+						sizeof(cfg->pw_scheme));
 			break;
 		case SQLITE_DONE:
 			syslog(LOG_ERR, "sqlite: query returned no row!");
@@ -113,7 +113,6 @@ sqlite_check(const char *got_username, char *password,
 	/* if there are more results (rows) */
 	if (sqlite3_step(query_prepared) == SQLITE_ROW) {
 		syslog(LOG_ERR, "sqlite: query returned more than one row!");
-		memset(password, '\0', MAX_PASSWORD);
 
 		return(sqlite_quit(db, query_prepared, 0));
 	} else

@@ -5,7 +5,7 @@
 
 
 typedef struct config_pgsql {
-	char	dbconnection[MAX_PARAM];
+	char	dbconnection[MAX_PARAM + 1];
 } config_pgsql;
 
 

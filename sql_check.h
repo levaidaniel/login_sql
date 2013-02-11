@@ -38,23 +38,23 @@ char	sql_check(const char *, const char *, const char *);
 
 
 typedef struct config_global {
-	char	sql_backend[MAX_PARAM];
+	char	sql_backend[MAX_PARAM + 1];
 
-	char	db_host[MAX_PARAM];
+	char	db_host[MAX_PARAM + 1];
 	int	db_port;
-	char	db_name[MAXPATHLEN];
-	char	db_username[MAX_PARAM];
-	char	db_password[MAX_PARAM];
-	char	db_table[MAX_PARAM];
+	char	db_name[MAXPATHLEN + 1];
+	char	db_username[MAX_PARAM + 1];
+	char	db_password[MAX_PARAM + 1];
+	char	db_table[MAX_PARAM + 1];
 
-	char	column_username[MAX_PARAM];
-	char	column_password[MAX_PARAM];
-	char	column_scheme[MAX_PARAM];
-	char	column_enabled[MAX_PARAM];
+	char	column_username[MAX_PARAM + 1];
+	char	column_password[MAX_PARAM + 1];
+	char	column_scheme[MAX_PARAM + 1];
+	char	column_enabled[MAX_PARAM + 1];
 
-	char	pw_scheme[MAX_PARAM];
+	char	pw_scheme[MAX_PARAM + 1];
 
-	char	empty_password[MAX_PARAM];
+	char	empty_password[MAX_PARAM + 1];
 } config_global;
 
 #endif

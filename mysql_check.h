@@ -12,11 +12,11 @@
 
 
 typedef struct config_mysql {
-	char	key[MAXPATHLEN];
-	char	cert[MAXPATHLEN];
-	char	ca[MAXPATHLEN];
-	char	capath[MAXPATHLEN];
-	char	cipher[MAX_PARAM];
+	char	key[MAXPATHLEN + 1];
+	char	cert[MAXPATHLEN + 1];
+	char	ca[MAXPATHLEN + 1];
+	char	capath[MAXPATHLEN + 1];
+	char	cipher[MAX_PARAM + 1];
 } config_mysql;
 
 

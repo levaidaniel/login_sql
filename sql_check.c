@@ -90,10 +90,10 @@ sql_check(const char *got_username, const char *got_password,
 		const char *config_file)
 {
 	FILE		*s_config_file = NULL;
-	char		config_line[MAX_CONFIG_LINE];
+	char		config_line[MAX_CONFIG_LINE + 1];
 
 	/* the db specific functions will (over)write the password to this variable */
-	char		password[MAX_PASSWORD] = "";
+	char		password[MAX_PASSWORD + 1] = "";
 
 	char		*salt = NULL;
 
@@ -444,64 +444,64 @@ parse_config(const char *config_line)
 
 	/* Global configuration options */
 	if (strncmp(config_line, CONFIG_GLOBAL_SQL_BACKEND, strlen(CONFIG_GLOBAL_SQL_BACKEND)) == 0)
-		strlcpy(cfg.sql_backend, config_line + (int)strlen(CONFIG_GLOBAL_SQL_BACKEND), MAX_PARAM);
+		strlcpy(cfg.sql_backend, config_line + (int)strlen(CONFIG_GLOBAL_SQL_BACKEND), sizeof(cfg.sql_backend));
 
 	if (strncmp(config_line, CONFIG_GLOBAL_DB_HOST, strlen(CONFIG_GLOBAL_DB_HOST)) == 0)
-		strlcpy(cfg.db_host, config_line + (int)strlen(CONFIG_GLOBAL_DB_HOST), MAX_PARAM);
+		strlcpy(cfg.db_host, config_line + (int)strlen(CONFIG_GLOBAL_DB_HOST), sizeof(cfg.db_host));
 
 	if (strncmp(config_line, CONFIG_GLOBAL_DB_PORT, strlen(CONFIG_GLOBAL_DB_PORT)) == 0)
 		sscanf(config_line + (int)strlen(CONFIG_GLOBAL_DB_PORT), "%d", &cfg.db_port);
 
 	if (strncmp(config_line, CONFIG_GLOBAL_DB_NAME, strlen(CONFIG_GLOBAL_DB_NAME)) == 0)
-		strlcpy(cfg.db_name, config_line + (int)strlen(CONFIG_GLOBAL_DB_NAME), MAX_PARAM);
+		strlcpy(cfg.db_name, config_line + (int)strlen(CONFIG_GLOBAL_DB_NAME), sizeof(cfg.db_name));
 
 	if (strncmp(config_line, CONFIG_GLOBAL_DB_USERNAME, strlen(CONFIG_GLOBAL_DB_USERNAME)) == 0)
-		strlcpy(cfg.db_username, config_line + (int)strlen(CONFIG_GLOBAL_DB_USERNAME), MAX_PARAM);
+		strlcpy(cfg.db_username, config_line + (int)strlen(CONFIG_GLOBAL_DB_USERNAME), sizeof(cfg.db_username));
 
 	if (strncmp(config_line, CONFIG_GLOBAL_DB_PASSWORD, strlen(CONFIG_GLOBAL_DB_PASSWORD)) == 0)
-		strlcpy(cfg.db_password, config_line + (int)strlen(CONFIG_GLOBAL_DB_PASSWORD), MAX_PARAM);
+		strlcpy(cfg.db_password, config_line + (int)strlen(CONFIG_GLOBAL_DB_PASSWORD), sizeof(cfg.db_password));
 
 	if (strncmp(config_line, CONFIG_GLOBAL_DB_TABLE, strlen(CONFIG_GLOBAL_DB_TABLE)) == 0)
-		strlcpy(cfg.db_table, config_line + (int)strlen(CONFIG_GLOBAL_DB_TABLE), MAX_PARAM);
+		strlcpy(cfg.db_table, config_line + (int)strlen(CONFIG_GLOBAL_DB_TABLE), sizeof(cfg.db_table));
 
 	if (strncmp(config_line, CONFIG_GLOBAL_COLUMN_USERNAME, strlen(CONFIG_GLOBAL_COLUMN_USERNAME)) == 0)
-		strlcpy(cfg.column_username, config_line + (int)strlen(CONFIG_GLOBAL_COLUMN_USERNAME), MAX_PARAM);
+		strlcpy(cfg.column_username, config_line + (int)strlen(CONFIG_GLOBAL_COLUMN_USERNAME), sizeof(cfg.column_username));
 
 	if (strncmp(config_line, CONFIG_GLOBAL_COLUMN_PASSWORD, strlen(CONFIG_GLOBAL_COLUMN_PASSWORD)) == 0)
-		strlcpy(cfg.column_password, config_line + (int)strlen(CONFIG_GLOBAL_COLUMN_PASSWORD), MAX_PARAM);
+		strlcpy(cfg.column_password, config_line + (int)strlen(CONFIG_GLOBAL_COLUMN_PASSWORD), sizeof(cfg.column_password));
 
 	if (strncmp(config_line, CONFIG_GLOBAL_COLUMN_SCHEME, strlen(CONFIG_GLOBAL_COLUMN_SCHEME)) == 0)
-		strlcpy(cfg.column_scheme, config_line + (int)strlen(CONFIG_GLOBAL_COLUMN_SCHEME), MAX_PARAM);
+		strlcpy(cfg.column_scheme, config_line + (int)strlen(CONFIG_GLOBAL_COLUMN_SCHEME), sizeof(cfg.column_scheme));
 
 	if (strncmp(config_line, CONFIG_GLOBAL_COLUMN_ENABLED, strlen(CONFIG_GLOBAL_COLUMN_ENABLED)) == 0)
-		strlcpy(cfg.column_enabled, config_line + (int)strlen(CONFIG_GLOBAL_COLUMN_ENABLED), MAX_PARAM);
+		strlcpy(cfg.column_enabled, config_line + (int)strlen(CONFIG_GLOBAL_COLUMN_ENABLED), sizeof(cfg.column_enabled));
 
 	if (strncmp(config_line, CONFIG_GLOBAL_PW_SCHEME, strlen(CONFIG_GLOBAL_PW_SCHEME)) == 0)
-		strlcpy(cfg.pw_scheme, config_line + (int)strlen(CONFIG_GLOBAL_PW_SCHEME), MAX_PARAM);
+		strlcpy(cfg.pw_scheme, config_line + (int)strlen(CONFIG_GLOBAL_PW_SCHEME), sizeof(cfg.pw_scheme));
 
 	if (strncmp(config_line, CONFIG_GLOBAL_EMPTY_PASSWORD, strlen(CONFIG_GLOBAL_EMPTY_PASSWORD)) == 0)
-		strlcpy(cfg.empty_password, config_line + (int)strlen(CONFIG_GLOBAL_EMPTY_PASSWORD), MAX_PARAM);
+		strlcpy(cfg.empty_password, config_line + (int)strlen(CONFIG_GLOBAL_EMPTY_PASSWORD), sizeof(cfg.empty_password));
 
 #ifdef _PGSQL_BACKEND
 	if (strncmp(config_line, CONFIG_PGSQL_DBCONNECTION, strlen(CONFIG_PGSQL_DBCONNECTION)) == 0)
-		strlcpy(cfg_pgsql.dbconnection, config_line + (int)strlen(CONFIG_PGSQL_DBCONNECTION), MAX_PARAM);
+		strlcpy(cfg_pgsql.dbconnection, config_line + (int)strlen(CONFIG_PGSQL_DBCONNECTION), sizeof(cfg_pgsql.dbconnection));
 #endif
 
 #ifdef _MYSQL_BACKEND
 	if (strncmp(config_line, CONFIG_MYSQL_KEY, strlen(CONFIG_MYSQL_KEY)) == 0)
-		strlcpy(cfg_mysql.key, config_line + (int)strlen(CONFIG_MYSQL_KEY), MAXPATHLEN);
+		strlcpy(cfg_mysql.key, config_line + (int)strlen(CONFIG_MYSQL_KEY), sizeof(cfg_mysql.key));
 
 	if (strncmp(config_line, CONFIG_MYSQL_CERT, strlen(CONFIG_MYSQL_CERT)) == 0)
-		strlcpy(cfg_mysql.cert, config_line + (int)strlen(CONFIG_MYSQL_CERT), MAXPATHLEN);
+		strlcpy(cfg_mysql.cert, config_line + (int)strlen(CONFIG_MYSQL_CERT), sizeof(cfg_mysql.cert));
 
 	if (strncmp(config_line, CONFIG_MYSQL_CA, strlen(CONFIG_MYSQL_CA)) == 0)
-		strlcpy(cfg_mysql.ca, config_line + (int)strlen(CONFIG_MYSQL_CA), MAXPATHLEN);
+		strlcpy(cfg_mysql.ca, config_line + (int)strlen(CONFIG_MYSQL_CA), sizeof(cfg_mysql.ca));
 
 	if (strncmp(config_line, CONFIG_MYSQL_CAPATH, strlen(CONFIG_MYSQL_CAPATH)) == 0)
-		strlcpy(cfg_mysql.capath, config_line + (int)strlen(CONFIG_MYSQL_CAPATH), MAXPATHLEN);
+		strlcpy(cfg_mysql.capath, config_line + (int)strlen(CONFIG_MYSQL_CAPATH), sizeof(cfg_mysql.capath));
 
 	if (strncmp(config_line, CONFIG_MYSQL_CIPHER, strlen(CONFIG_MYSQL_CIPHER)) == 0)
-		strlcpy(cfg_mysql.cipher, config_line + (int)strlen(CONFIG_MYSQL_CIPHER), MAX_PARAM);
+		strlcpy(cfg_mysql.cipher, config_line + (int)strlen(CONFIG_MYSQL_CIPHER), sizeof(cfg_mysql.cipher));
 #endif
 } /* parse_config() */
 

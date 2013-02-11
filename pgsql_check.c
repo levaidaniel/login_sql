@@ -43,15 +43,15 @@ pgsql_check(const char *got_username, char *password,
 
 	int		pg_numrows = 0;
 
-	char		dbconnection[MAX_PARAM * 3];
+	char		dbconnection[MAX_PARAM * 3 + 1];
 
 	char		*user_col_escaped = NULL, *pass_col_escaped = NULL,
 			*scheme_col_escaped = NULL, *enabled_col_escaped = NULL,
 			*table_escaped = NULL;
 	const char	*query_tpl = "SELECT %s, %s FROM %s WHERE %s = '%s' and %s = true; --";
-	char		query_cmd[MAX_QUERY_CMD] = "";
+	char		query_cmd[MAX_QUERY_CMD + 1] = "";
 
-	char		username[MAX_USERNAME] = "";
+	char		username[MAX_USERNAME + 1] = "";
 	char		*username_escaped = NULL;
 
 
@@ -101,12 +101,12 @@ pgsql_check(const char *got_username, char *password,
 	table_escaped = malloc(strlen(cfg->db_table) * 2 + 1); malloc_check(table_escaped);
 	PQescapeStringConn(pg_conn, table_escaped, cfg->db_table, strlen(cfg->db_table), NULL);
 
-	strlcpy(username, got_username, MAX_USERNAME);
+	strlcpy(username, got_username, sizeof(username));
 	username_escaped = malloc(strlen(username) * 2 + 1); malloc_check(username_escaped);
 	PQescapeStringConn(pg_conn, username_escaped, username, strlen(username), NULL);
 
 	/* fill the template sql command with the required fields */
-	snprintf(query_cmd, MAX_QUERY_CMD, query_tpl,
+	snprintf(query_cmd, sizeof(query_cmd), query_tpl,
 			pass_col_escaped, scheme_col_escaped, table_escaped,
 			user_col_escaped, username_escaped,
 			strlen(cfg->column_enabled) ? enabled_col_escaped : "true");
@@ -140,7 +140,7 @@ pgsql_check(const char *got_username, char *password,
 			if (	PQgetlength(pg_result, 0, 0) > 0  &&
 				!PQgetisnull(pg_result, 0, 0))
 				/* write the queried password to the 'password' variable */
-				strlcpy(password, PQgetvalue(pg_result, 0, 0), MAX_PASSWORD);
+				strlcpy(password, PQgetvalue(pg_result, 0, 0), MAX_PASSWORD + 1);
 
 
 			if (	PQgetlength(pg_result, 0, 1) > 0  &&
@@ -149,7 +149,7 @@ pgsql_check(const char *got_username, char *password,
 				 * defined password scheme from the configuration file else,
 				 * write the queried scheme to the 'cfg->pw_scheme' variable
 				 */
-				strlcpy(cfg->pw_scheme, PQgetvalue(pg_result, 0, 1), MAX_PARAM);
+				strlcpy(cfg->pw_scheme, PQgetvalue(pg_result, 0, 1), sizeof(cfg->pw_scheme));
 
 			return(pgsql_quit(pg_conn, pg_result, 1));
 			break;

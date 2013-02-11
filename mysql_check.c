@@ -46,9 +46,9 @@ mysql_check(const char *got_username, char *password,
 			*scheme_col_escaped = NULL, *enabled_col_escaped = NULL,
 			*table_escaped = NULL;
 	const char	*query_tpl = "SELECT %s, %s FROM %s WHERE %s = '%s' and %s = 1; --";
-	char		query_cmd[MAX_QUERY_CMD] = "";
+	char		query_cmd[MAX_QUERY_CMD + 1] = "";
 
-	char		username[MAX_USERNAME] = "";
+	char		username[MAX_USERNAME + 1] = "";
 	char		*username_escaped = NULL;
 
 
@@ -95,12 +95,12 @@ mysql_check(const char *got_username, char *password,
 	table_escaped = malloc(strlen(cfg->db_table) * 2 + 1); malloc_check(table_escaped);
 	mysql_real_escape_string(&mysql, table_escaped, cfg->db_table, strlen(cfg->db_table));
 
-	strlcpy(username, got_username, MAX_USERNAME);
+	strlcpy(username, got_username, sizeof(username));
 	username_escaped = malloc(strlen(username) * 2 + 1); malloc_check(username_escaped);
 	mysql_real_escape_string(&mysql, username_escaped, username, strlen(username));
 
 	/* fill the template sql command with the required fields */
-	snprintf(query_cmd, MAX_QUERY_CMD, query_tpl,
+	snprintf(query_cmd, sizeof(query_cmd), query_tpl,
 			pass_col_escaped, scheme_col_escaped, table_escaped,
 			user_col_escaped, username_escaped,
 			strlen(cfg->column_enabled) ? enabled_col_escaped : "1");
@@ -152,14 +152,14 @@ mysql_check(const char *got_username, char *password,
 
 		if (mysql_lengths[0] > 0)
 			/* write the queried password to the 'password' variable */
-			strlcpy(password, mysql_row[0], MAX_PASSWORD);
+			strlcpy(password, mysql_row[0], MAX_PASSWORD + 1);
 
 		if (mysql_lengths[1] > 0)
 			/* if the field is empty or NULL, we use the globally
 			 * defined password scheme from the configuration file else,
 			 * write the queried scheme to the 'cfg->pw_scheme' variable
 			 */
-			strlcpy(cfg->pw_scheme, mysql_row[1], MAX_PARAM);
+			strlcpy(cfg->pw_scheme, mysql_row[1], sizeof(cfg->pw_scheme));
 
 		return(mysql_quit(&mysql, mysql_result, 1));
 	}
