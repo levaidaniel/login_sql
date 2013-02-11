@@ -1,6 +1,7 @@
 LOCALBASE ?=	/usr/local
 
 BINGRP =	auth
+BINMODE =	550
 BINDIR =	${LOCALBASE}/libexec/auth
 PROG =		login_sql
 
