@@ -17,7 +17,7 @@
 .\"ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 .\"(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 .\"SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-.Dd Jan 26, 2013
+.Dd Feb 11, 2013
 .Dt LOGIN_SQL 8
 .Os
 .Sh NAME
@@ -109,33 +109,39 @@ The message digest or encryption algorithm to use with the user supplied passwor
 .Cm column_scheme
 column in the database table. If the
 .Cm column_scheme
-is an empty string or NULL, then this will be used for the username in question.
+column's value is an empty string or NULL, then this will be used for the username in question.
 .Pp
-You can use any digest which is supported by your OpenSSL library. For more information, enter
-.Dl openssl dgst -h
-on the command line.
-.Pp
-On top of that, the
-.Cm blowfish
-or the
-.Cm md5crypt
-values make use of the
+Valid digests are the following:
+.Bl -tag -offset ||| -width |
+.It Ar ssha1 ssha256 ssha512
+These are salted SHA message digests.
+.Xr login_sql 8
+comes with a utility called
+.Xr login_sql_pw 1
+that can generate such digests.
+.It Ar blowfish md5crypt
+These digests use the
 .Xr crypt 3
-function and encrypt the user supplied password with salted
+function to encrypt the user supplied password with salted
 .Em blowfish
 or salted
 .Em md5
-encryption algorithms, respectively.
-.Pp
-The special value
-.Cm cleartext
-means that the password is stored in clear text in the database, so no hashing is necessary for the password entered.
+algorithms, respectively.
+.It Ar cleartext
+This means that the password is stored in clear text in the database, so no hashing is necessary for the password entered.
+.It OpenSSL digests
+Furthermore you can use any digest which is supported by your OpenSSL library. For more information, enter
+.Dl openssl dgst -h
+on the command line.
+.El
 .It Cm empty_password
 (Default: no)
 .Pp
 If
 .Cm yes
-then allow comparison of empty passwords. Otherwise
+then allow comparison of empty passwords. If
+.Cm no
+(default)
 .Nm
 refuses to authorize a login if either the supplied or queried password is empty.
 .Em Note
@@ -237,7 +243,8 @@ column_enabled=enabled
 
 pw_scheme=sha256
 .Ed
-.It Em Generating a blowfish password with encrypt(1) :
+.It Em Generating a blowfish password with
+.Xr encrypt 1 :
 .Bd -literal
 $ encrypt s3cr3t
 $2a$06$.sqd/Wevf1C6B520zdshB.1lNPGE/FkqK3/O9p0uj7lzVofPtBpJu
@@ -247,7 +254,8 @@ You can use this value for a password row if you use
 .Ql blowfish
 for
 .Cm pw_scheme .
-.It Em Generating salted sha passwords with login_sql_pw(1) :
+.It Em Generating salted sha passwords with
+.Xr login_sql_pw 1 :
 .Bd -literal
 $ login_sql_pw -a ssha1 -p sha1s3cr3t
 saZ6GV5M5ZPKBeBxRE2eh2FFR4mLTeDk
@@ -265,7 +273,8 @@ or
 .Ql ssha512
 for
 .Cm pw_scheme .
-.It Em Generating a salted md5 password with encrypt(1) :
+.It Em Generating a salted md5 password with
+.Xr encrypt 1 :
 .Bd -literal
 $ encrypt -m s3cr3t
 $1$EpRnA1xB$mpt54XE/LOyF18ynFuM1u/
@@ -275,7 +284,8 @@ You can use this value for a password row if you use
 .Ql md5crypt
 for
 .Cm pw_scheme .
-.It Em Generating an sha256 hashed password with openssl(1) :
+.It Em Generating an sha256 hashed password with
+.Xr openssl 1 :
 .Bd -literal
 $ printf "s3cr3t" |openssl dgst -sha256
 (stdin)= 4e738ca5563c06cfd0018299933d58db1dd8bf97f6973dc99bf6cdc64b5550bd
