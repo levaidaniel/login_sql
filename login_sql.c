@@ -54,7 +54,7 @@ main(int argc, char *argv[])
 
 	(void)setpriority(PRIO_PROCESS, 0, 0);
 
-	openlog("login_sql", LOG_ODELAY, LOG_AUTH);
+	openlog("login_sql", LOG_PID, LOG_AUTH);
 
 	while ((c = getopt(argc, argv, "v:s:d")) != -1) {
 		switch (c) {
