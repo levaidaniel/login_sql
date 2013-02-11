@@ -177,7 +177,7 @@ main(int argc, char *argv[])
 			free(salt); salt = NULL;
 			return(1);
 		}
-		readpassphrase("Password: ", password, PASSWORD_MAXLEN + 1, RPP_REQUIRE_TTY);
+		readpassphrase("Password:", password, PASSWORD_MAXLEN + 1, RPP_REQUIRE_TTY);
 	}
 	if (!strlen(password)) {
 		puts("The specified password is empty!");
