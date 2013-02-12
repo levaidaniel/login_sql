@@ -89,7 +89,7 @@ main(int argc, char *argv[])
 				return(0);
 			break;
 			case 'p':
-				password = optarg;
+				password = strdup(optarg);
 			break;
 			case 'h':
 				/* FALLTHROUGH */
@@ -182,6 +182,7 @@ main(int argc, char *argv[])
 	if (!strlen(password)) {
 		puts("The specified password is empty!");
 
+		free(password); password = NULL;
 		free(salt); salt = NULL;
 		return(1);
 	}
@@ -198,6 +199,8 @@ main(int argc, char *argv[])
 	memcpy(password_salted, salt, SSHA_SALT_LEN);
 	memcpy(password_salted + SSHA_SALT_LEN, password, strlen(password));
 	password_salted[SSHA_SALT_LEN + strlen(password)] = '\0';
+
+	free(password); password = NULL;
 
 
 	/* Create the message digest from the salted password */
