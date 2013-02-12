@@ -28,6 +28,7 @@
 
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #include <readpassphrase.h>
 
@@ -40,7 +41,13 @@
 #define	PASSWORD_MAXLEN	1024
 
 
-char *usage(void);
+char	*usage(void);
+void	quit(int);
+
+
+char	*salt = NULL;
+char	*password = NULL;
+BIO	*bio_chain = NULL;
 
 
 int
@@ -55,17 +62,14 @@ main(int argc, char *argv[])
 					};
 	char	found = 0;
 
-	char	*salt = NULL;
 	int	random_fd = -1;
 
-	char	*password = NULL;
 	char	*password_salted = NULL;
 	char	*buf = NULL;
 	int	pos = 0, ret = 0, c = 0;
 
 	BIO	*bio_mem = NULL;
 	BIO	*bio_b64 = NULL;
-	BIO	*bio_chain = NULL;
 
 	EVP_MD_CTX	mdctx;
 	const EVP_MD	*md = NULL;
@@ -86,7 +90,7 @@ main(int argc, char *argv[])
 					digest_algo = supported_digests[pos++];
 				}
 				puts("");
-				return(0);
+				quit(0);
 			break;
 			case 'p':
 				password = strdup(optarg);
@@ -95,7 +99,7 @@ main(int argc, char *argv[])
 				/* FALLTHROUGH */
 			default:
 				printf("%s %s\n", argv[0], usage());
-				return(0);
+				quit(0);
 			break;
 		}
 
@@ -105,7 +109,7 @@ main(int argc, char *argv[])
 		puts("You must specify a message digest algorithm!\n");
 		printf("%s %s\n", argv[0], usage());
 
-		return(1);
+		quit(1);
 	}
 
 	pos = 0;
@@ -115,14 +119,14 @@ main(int argc, char *argv[])
 	}
 	if (!found) {
 		printf("Invalid message digest algorithm: %s\n", digest_algo);
-		return(1);
+		quit(1);
 	}
 
 	OpenSSL_add_all_digests();
 	md = EVP_get_digestbyname(++digest_algo);
 	if (!md) {
 		printf("Invalid message digest algorithm: %s\n", digest_algo);
-		return(1);
+		quit(1);
 	}
 
 
@@ -130,20 +134,18 @@ main(int argc, char *argv[])
 	random_fd = open(RANDOM_DEVICE, O_RDONLY);
 	if (random_fd < 0) {
 		perror("open: " RANDOM_DEVICE);
-		return(1);
+		quit(1);
 	}
 
 	salt = malloc(SSHA_SALT_LEN);
 	if (!salt) {
 		puts("Could not allocate memory for salt generation!");
-		return(1);
+		quit(1);
 	}
 
 	if (read(random_fd, salt, SSHA_SALT_LEN) < SSHA_SALT_LEN) {
 		printf("Less than %d bytes read from %s!\n", SSHA_SALT_LEN, RANDOM_DEVICE);
-
-		free(salt); salt = NULL;
-		return(1);
+		quit(1);
 	}
 
 
@@ -151,18 +153,14 @@ main(int argc, char *argv[])
 	bio_mem = BIO_new(BIO_s_mem());
 	if (!bio_mem) {
 		perror("BIO_new(s_mem)");
-
-		free(salt); salt = NULL;
-		return(1);
+		quit(1);
 	}
 	bio_chain = BIO_push(bio_mem, bio_chain);
 
 	bio_b64 = BIO_new(BIO_f_base64());
 	if (!bio_b64) {
 		perror("BIO_new(f_base64)");
-
-		free(salt); salt = NULL;
-		return(1);
+		quit(1);
 	}
 	BIO_set_flags(bio_b64, BIO_FLAGS_BASE64_NO_NL);
 	bio_chain = BIO_push(bio_b64, bio_chain);
@@ -173,18 +171,13 @@ main(int argc, char *argv[])
 		password = malloc(PASSWORD_MAXLEN);
 		if (!password) {
 			puts("Could not allocate memory for password reading!");
-
-			free(salt); salt = NULL;
-			return(1);
+			quit(1);
 		}
 		readpassphrase("Password:", password, PASSWORD_MAXLEN + 1, RPP_REQUIRE_TTY);
 	}
 	if (!strlen(password)) {
 		puts("The specified password is empty!");
-
-		free(password); password = NULL;
-		free(salt); salt = NULL;
-		return(1);
+		quit(1);
 	}
 
 
@@ -192,9 +185,7 @@ main(int argc, char *argv[])
 	password_salted = malloc(SSHA_SALT_LEN + strlen(password) + 1);
 	if (!password_salted) {
 		puts("Could not allocate memory for password salting!");
-
-		free(salt); salt = NULL;
-		return(1);
+		quit(1);
 	}
 	memcpy(password_salted, salt, SSHA_SALT_LEN);
 	memcpy(password_salted + SSHA_SALT_LEN, password, strlen(password));
@@ -216,9 +207,7 @@ main(int argc, char *argv[])
 	password_digest_salted = malloc(SSHA_SALT_LEN + md_len);
 	if (!password_digest_salted ) {
 		puts("Could not allocate memory for digest generation!");
-
-		free(salt); salt = NULL;
-		return(1);
+		quit(1);
 	}
 	memcpy(password_digest_salted, salt, SSHA_SALT_LEN);
 	memcpy(password_digest_salted + SSHA_SALT_LEN, password_digest, md_len);
@@ -240,7 +229,7 @@ main(int argc, char *argv[])
 	printf("%s\n", buf);
 
 
-	BIO_free_all(bio_chain);
+	quit(0);
 
 	return(0);
 } /* main() */
@@ -254,3 +243,13 @@ usage(void)
 		"-p <password>: Specify password.\n"
 		"-h: This help.");
 } /* usage() */
+
+void
+quit(int retval)
+{
+	free(password); password = NULL;
+	free(salt); salt = NULL;
+	BIO_free_all(bio_chain);
+
+	exit(retval);
+} /* quit() */
