@@ -55,9 +55,16 @@ main(int argc, char *argv[])
 {
 	char	*digest_algo = NULL;
 	char	*supported_digests[] = {
+					"smd4",
+					"smd5",
+					"smdc2",
+					"sripemd160",
 					"ssha1",
+					"ssha224",
 					"ssha256",
+					"ssha384",
 					"ssha512",
+					"swhirlpool",
 					NULL
 					};
 	char	found = 0;
@@ -118,14 +125,14 @@ main(int argc, char *argv[])
 			found = 1;
 	}
 	if (!found) {
-		printf("Invalid message digest algorithm: %s\n", digest_algo);
+		printf("Message digest algorithm '%s' is not supported by %s.\n", digest_algo, argv[0]);
 		quit(1);
 	}
 
 	OpenSSL_add_all_digests();
 	md = EVP_get_digestbyname(++digest_algo);
 	if (!md) {
-		printf("Invalid message digest algorithm: %s\n", digest_algo);
+		printf("Message digest algorithm '%s' is not supported by your OpenSSL.\n", digest_algo);
 		quit(1);
 	}
 
