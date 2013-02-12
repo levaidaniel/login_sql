@@ -53,21 +53,7 @@ BIO	*bio_chain = NULL;
 int
 main(int argc, char *argv[])
 {
-	char	*digest_algo = NULL;
-	char	*supported_digests[] = {
-					"smd4",
-					"smd5",
-					"smdc2",
-					"sripemd160",
-					"ssha1",
-					"ssha224",
-					"ssha256",
-					"ssha384",
-					"ssha512",
-					"swhirlpool",
-					NULL
-					};
-	char	found = 0;
+	char	*digest = NULL;
 
 	int	random_fd = -1;
 
@@ -88,16 +74,7 @@ main(int argc, char *argv[])
 	while ((c = getopt(argc, argv, "a:lp:h")) != -1)
 		switch (c) {
 			case 'a':
-				digest_algo = optarg;
-			break;
-			case 'l':
-				digest_algo = supported_digests[pos++];
-				while (digest_algo) {
-					printf("%s ", digest_algo);
-					digest_algo = supported_digests[pos++];
-				}
-				puts("");
-				quit(0);
+				digest = optarg;
 			break;
 			case 'p':
 				password = strdup(optarg);
@@ -112,27 +89,17 @@ main(int argc, char *argv[])
 
 
 	/* Message digest setup */
-	if (!digest_algo) {
+	if (!digest) {
 		puts("You must specify a message digest algorithm!\n");
 		printf("%s %s\n", argv[0], usage());
 
 		quit(1);
 	}
 
-	pos = 0;
-	while (supported_digests[pos]) {
-		if (strcmp(digest_algo, supported_digests[pos++]) == 0)
-			found = 1;
-	}
-	if (!found) {
-		printf("Message digest algorithm '%s' is not supported by %s.\n", digest_algo, argv[0]);
-		quit(1);
-	}
-
 	OpenSSL_add_all_digests();
-	md = EVP_get_digestbyname(++digest_algo);
+	md = EVP_get_digestbyname(digest);
 	if (!md) {
-		printf("Message digest algorithm '%s' is not supported by your OpenSSL.\n", digest_algo);
+		printf("Message digest algorithm '%s' is not supported by your OpenSSL.\nRun `openssl dgst -h' to see which digests you can use.", digest);
 		quit(1);
 	}
 
@@ -244,9 +211,8 @@ main(int argc, char *argv[])
 char *
 usage(void)
 {
-	return(	"<-a algorithm> [-l] [-p <password>] [-h]\n\n"
+	return(	"<-a algorithm> [-p <password>] [-h]\n\n"
 		"-a <algorithm>: Specify the message digest algorithm to use.\n"
-		"-l: List supported message digest algorithms.\n"
 		"-p <password>: Specify password.\n"
 		"-h: This help.");
 } /* usage() */

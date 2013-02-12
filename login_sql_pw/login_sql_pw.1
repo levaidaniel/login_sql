@@ -33,14 +33,20 @@
 The
 .Nm
 utility complements the login_sql(8) BSD authentication style, and is used to create various salted message digests.
+.Nm
+actually wraps around
+.Xr openssl 1
+and generates OpenSSL supported message digests with 4 bytes long salts. You can check what kind of message digests you can use with your OpenSSL version with
+.Dl openssl dgst -h
 .Ss PARAMETERS
 .Bl -tag -offset ||| -width |
 .It Fl a Ar algorithm
 Use
 .Ar algorithm
-as the message digest algorithm.
-.It Fl l
-List supported message digest algorithms.
+as the message digest algorithm. You can use any digest that your OpenSSL supports.
+See the
+.Em EXAMPLES
+section.
 .It Fl p Ar password
 Use
 .Ar password
@@ -52,13 +58,28 @@ This help.
 .El
 .Sh EXAMPLES
 .Bd -literal
-$ login_sql_pw -a ssha1 -p sha1s3cr3t
+$ openssl dgst -h
+[...]
+-md4            to use the md4 message digest algorithm
+-md5            to use the md5 message digest algorithm
+-mdc2           to use the mdc2 message digest algorithm
+-ripemd160      to use the ripemd160 message digest algorithm
+-sha            to use the sha message digest algorithm
+-sha1           to use the sha1 message digest algorithm
+-sha224         to use the sha224 message digest algorithm
+-sha256         to use the sha256 message digest algorithm
+-sha384         to use the sha384 message digest algorithm
+-sha512         to use the sha512 message digest algorithm
+-whirlpool      to use the whirlpool message digest algorithm
+$ login_sql_pw -a sha1 -p sha1s3cr3t
 saZ6GV5M5ZPKBeBxRE2eh2FFR4mLTeDk
-$ login_sql_pw -a ssha256 -p sha256s3cr3t
+$ login_sql_pw -a sha256 -p sha256s3cr3t
 PwsMI5v86ycSdJGudPigVdE73GbeAHhnkZaSOrpRw6KnVfvU
-$ login_sql_pw -a ssha512
+$ login_sql_pw -a sha512
 Password:
 JLacuTMLsCou5OPk92Jclw/QSIDrMqg+PIAfd3XHavoCLNp1OPm9zKPrwA7J+wVO3SCWXU5MapnBQdYFOJlP7rlr6rw=
+$ login_sql_pw -a ripemd160 -p test
+tdHUAgTPqRrbXcv11jQ6SIlsLzcW+10V
 .Ed
 .Sh AUTHOR
 .Nm
@@ -70,4 +91,5 @@ Source, information, bugs:
 http://login-sql.googlecode.com
 .Sh SEE ALSO
 .Xr login_sql 8 ,
-.Xr encrypt 1
+.Xr encrypt 1 ,
+.Xr openssl 1

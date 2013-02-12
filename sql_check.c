@@ -252,19 +252,26 @@ sql_check(const char *got_username, const char *got_password,
 		salt[i] = '\0';
 
 		got_password_digest_string = crypt(got_password, salt);
-	} else if (	strcmp(cfg.pw_scheme, "ssha1") == 0  ||
+	} else if (	strcmp(cfg.pw_scheme, "smd4") == 0  ||
+			strcmp(cfg.pw_scheme, "smd5") == 0  ||
+			strcmp(cfg.pw_scheme, "smdc2") == 0  ||
+			strcmp(cfg.pw_scheme, "sripemd160") == 0  ||
+			strcmp(cfg.pw_scheme, "ssha1") == 0  ||
+			strcmp(cfg.pw_scheme, "ssha224") == 0  ||
 			strcmp(cfg.pw_scheme, "ssha256") == 0  ||
-			strcmp(cfg.pw_scheme, "ssha512") == 0) {
+			strcmp(cfg.pw_scheme, "ssha384") == 0  ||
+			strcmp(cfg.pw_scheme, "ssha512") == 0  ||
+			strcmp(cfg.pw_scheme, "swhirlpool") == 0) {
 
 		/*
-		 * ... Salted SHA digests using openssl, but salting manually.
+		 * ... Various digests using OpenSSL, but salting manually.
 		 * ...
 		 */
 
 		OpenSSL_add_all_digests();
 		md = EVP_get_digestbyname(cfg.pw_scheme + 1);
 		if (!md) {
-			syslog(LOG_ERR, "invalid message digest algorithm: %s", cfg.pw_scheme);
+			syslog(LOG_ERR, "message digest algorithm '%s' is not supported by OpenSSL", cfg.pw_scheme + 1);
 			return(0);
 		}
 
@@ -427,7 +434,7 @@ sql_check(const char *got_username, const char *got_password,
 		OpenSSL_add_all_digests();
 		md = EVP_get_digestbyname(cfg.pw_scheme);
 		if (!md) {
-			syslog(LOG_ERR, "invalid message digest algorithm: %s", cfg.pw_scheme);
+			syslog(LOG_ERR, "message digest algorithm '%s' is not supported by OpenSSL", cfg.pw_scheme);
 			return(0);
 		}
 

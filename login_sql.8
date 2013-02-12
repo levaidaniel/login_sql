@@ -112,8 +112,8 @@ column's value is an empty string or NULL, then this will be used for the userna
 .Pp
 Valid digests are the following:
 .Bl -tag -offset ||| -width |
-.It Ar ssha1 ssha256 ssha512
-These are salted SHA message digests.
+.It Ar smd4 smd5 smdc2 sripemd160 ssha1 ssha224 ssha256 ssha384 ssha512 swhirlpool
+These are various salted message digests.
 .Xr login_sql 8
 comes with a utility called
 .Xr login_sql_pw 1
@@ -125,7 +125,9 @@ function to encrypt the user supplied password with salted
 .Em blowfish
 or salted
 .Em md5
-algorithms, respectively.
+algorithms, respectively. The
+.Xr encrypt 1
+utility can be used to generate such digests.
 .It Ar cleartext
 This means that the password is stored in clear text in the database, so no hashing is necessary for the password entered.
 .It OpenSSL digests
@@ -223,7 +225,7 @@ column_password=password
 column_scheme=scheme
 column_enabled=enabled
 
-pw_scheme=sha256
+pw_scheme=ssha256
 
 # Optional, extra PostgreSQL options:
 pgsql_dbconnection=connect_timeout=10 sslmode=verify-full
@@ -240,7 +242,7 @@ column_password=password
 column_scheme=scheme
 column_enabled=enabled
 
-pw_scheme=sha256
+pw_scheme=ssha256
 .Ed
 .It Em Generating a blowfish password with
 .Xr encrypt 1 :
@@ -253,16 +255,18 @@ You can use this value for a password row if you use
 .Ql blowfish
 for
 .Cm pw_scheme .
-.It Em Generating salted sha passwords with
+.It Em Generating passwords with
 .Xr login_sql_pw 1 :
 .Bd -literal
-$ login_sql_pw -a ssha1 -p sha1s3cr3t
+$ login_sql_pw -a sha1 -p sha1s3cr3t
 saZ6GV5M5ZPKBeBxRE2eh2FFR4mLTeDk
-$ login_sql_pw -a ssha256 -p sha256s3cr3t
+$ login_sql_pw -a sha256 -p sha256s3cr3t
 PwsMI5v86ycSdJGudPigVdE73GbeAHhnkZaSOrpRw6KnVfvU
-$ login_sql_pw -a ssha512
+$ login_sql_pw -a sha512
 Password:
 JLacuTMLsCou5OPk92Jclw/QSIDrMqg+PIAfd3XHavoCLNp1OPm9zKPrwA7J+wVO3SCWXU5MapnBQdYFOJlP7rlr6rw=
+$ login_sql_pw -a ripemd160 -p test
+tdHUAgTPqRrbXcv11jQ6SIlsLzcW+10V
 .Ed
 .Pp
 You can use these values for a password row if you use
@@ -331,8 +335,8 @@ http://login-sql.googlecode.com
 .Xr login 1 ,
 .Xr su 1 ,
 .Xr login.conf 5 ,
+.Xr openssl 1 ,
+.Xr encrypt 1 ,
 .Xr psql 1 ,
 .Xr mysql 1 ,
-.Xr sqlite3 1 ,
-.Xr openssl 1
-.Xr encrypt 1
+.Xr sqlite3 1
