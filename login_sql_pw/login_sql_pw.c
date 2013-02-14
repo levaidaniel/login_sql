@@ -99,7 +99,7 @@ main(int argc, char *argv[])
 	OpenSSL_add_all_digests();
 	md = EVP_get_digestbyname(digest);
 	if (!md) {
-		printf("Message digest algorithm '%s' is not supported by your OpenSSL.\nRun `openssl dgst -h' to see which digests you can use.", digest);
+		printf("Message digest algorithm '%s' is not supported by your OpenSSL.\nRun `openssl dgst -h' to see which digests you can use.\n", digest);
 		quit(1);
 	}
 
