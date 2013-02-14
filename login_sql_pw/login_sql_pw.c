@@ -71,7 +71,7 @@ main(int argc, char *argv[])
 	unsigned int	md_len = 0;
 
 
-	while ((c = getopt(argc, argv, "a:lp:h")) != -1)
+	while ((c = getopt(argc, argv, "a:p:h")) != -1)
 		switch (c) {
 			case 'a':
 				digest = optarg;
