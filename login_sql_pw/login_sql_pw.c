@@ -71,7 +71,7 @@ main(int argc, char *argv[])
 	unsigned int	md_len = 0;
 
 
-	while ((c = getopt(argc, argv, "a:p:h")) != -1)
+	while ((c = getopt(argc, argv, "a:p:")) != -1)
 		switch (c) {
 			case 'a':
 				digest = optarg;
@@ -79,8 +79,6 @@ main(int argc, char *argv[])
 			case 'p':
 				password = strdup(optarg);
 			break;
-			case 'h':
-				/* FALLTHROUGH */
 			default:
 				printf("%s %s\n", argv[0], usage());
 				quit(0);
@@ -211,10 +209,9 @@ main(int argc, char *argv[])
 char *
 usage(void)
 {
-	return(	"<-a algorithm> [-p <password>] [-h]\n\n"
+	return(	"<-a algorithm> [-p <password>]\n\n"
 		"-a <algorithm>: Specify the message digest algorithm to use.\n"
-		"-p <password>: Specify password.\n"
-		"-h: This help.");
+		"-p <password>: Specify password.");
 } /* usage() */
 
 void
