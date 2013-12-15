@@ -111,12 +111,12 @@ main(int argc, char *argv[])
 
 	salt = malloc(SSHA_SALT_LEN);
 	if (!salt) {
-		puts("Could not allocate memory for salt generation!");
+		warnx("Could not allocate memory for salt generation!");
 		quit(1);
 	}
 
 	if (read(random_fd, salt, SSHA_SALT_LEN) < SSHA_SALT_LEN) {
-		printf("Less than %d bytes read from %s!\n", SSHA_SALT_LEN, RANDOM_DEVICE);
+		warn("Less than %d bytes read from %s!", SSHA_SALT_LEN, RANDOM_DEVICE);
 		quit(1);
 	}
 
@@ -124,14 +124,14 @@ main(int argc, char *argv[])
 	/* BIO chain setup */
 	bio_mem = BIO_new(BIO_s_mem());
 	if (!bio_mem) {
-		perror("BIO_new(s_mem)");
+		warn("BIO_new(s_mem)");
 		quit(1);
 	}
 	bio_chain = BIO_push(bio_mem, bio_chain);
 
 	bio_b64 = BIO_new(BIO_f_base64());
 	if (!bio_b64) {
-		perror("BIO_new(f_base64)");
+		warn("BIO_new(f_base64)");
 		quit(1);
 	}
 	BIO_set_flags(bio_b64, BIO_FLAGS_BASE64_NO_NL);
@@ -140,15 +140,26 @@ main(int argc, char *argv[])
 
 	/* Password setup */
 	if (!password) {
-		password = malloc(PASSWORD_MAXLEN);
+		/* We will read plus one character, to see the password would be longer
+		 * than allowed, so we can warn the user a bit alter.
+		 */
+		password = malloc(PASSWORD_MAXLEN + 1 + 1);
 		if (!password) {
-			puts("Could not allocate memory for password reading!");
+			warnx("Could not allocate memory for password reading!");
 			quit(1);
 		}
-		readpassphrase("Password:", password, PASSWORD_MAXLEN + 1, RPP_REQUIRE_TTY);
+		readpassphrase("Password:", password, PASSWORD_MAXLEN + 1 + 1, RPP_REQUIRE_TTY);
 	}
 	if (!strlen(password)) {
-		puts("The specified password is empty!");
+		warnx("The specified password is empty!");
+		quit(1);
+	}
+
+	if (strlen(password) > PASSWORD_MAXLEN) {
+		warnx("The maximum allowed length for the password is %d!", PASSWORD_MAXLEN);
+
+		if (password)
+			memset(password, '\0', strlen(password));
 		quit(1);
 	}
 
@@ -156,13 +167,18 @@ main(int argc, char *argv[])
 	/* Salt the user's password */
 	password_salted = malloc(SSHA_SALT_LEN + strlen(password) + 1);
 	if (!password_salted) {
-		puts("Could not allocate memory for password salting!");
+		warnx("Could not allocate memory for password salting!");
+
+		if (password)
+			memset(password, '\0', strlen(password));
 		quit(1);
 	}
 	memcpy(password_salted, salt, SSHA_SALT_LEN);
 	memcpy(password_salted + SSHA_SALT_LEN, password, strlen(password));
 	password_salted[SSHA_SALT_LEN + strlen(password)] = '\0';
 
+	if (password)
+		memset(password, '\0', strlen(password));
 	free(password); password = NULL;
 
 
@@ -178,16 +194,22 @@ main(int argc, char *argv[])
 	/* base64 encode the salt + message digest */
 	password_digest_salted = malloc(SSHA_SALT_LEN + md_len);
 	if (!password_digest_salted ) {
-		puts("Could not allocate memory for digest generation!");
+		warnx("Could not allocate memory for digest generation!");
 		quit(1);
 	}
 	memcpy(password_digest_salted, salt, SSHA_SALT_LEN);
 	memcpy(password_digest_salted + SSHA_SALT_LEN, password_digest, md_len);
 
-	BIO_write(bio_chain, password_digest_salted, SSHA_SALT_LEN + md_len);
+	ret = BIO_write(bio_chain, password_digest_salted, SSHA_SALT_LEN + md_len);
+	if (ret != SSHA_SALT_LEN + md_len) {
+		warnx("Short write while digesting the salted password!");
+		quit(1);
+	}
 	BIO_flush(bio_chain);
 
 	free(salt); salt = NULL;
+	if (password_digest_salted)
+		memset(password_digest_salted, '\0', SSHA_SALT_LEN + md_len);
 	free(password_digest_salted); password_digest_salted = NULL;
 
 	pos = 0;
