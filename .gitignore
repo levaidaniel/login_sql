@@ -1,6 +1,9 @@
 login_sql_pw/login_sql_pw
 login_sql
 
+# mandoc files
+*.manlint
+
 # Core files
 core
 *.core
