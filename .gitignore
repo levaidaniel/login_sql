@@ -1,5 +1,8 @@
 login_sql_pw/login_sql_pw
 login_sql
+scan-build/
+scan-build.sh
+test-sql.sh
 
 # mandoc files
 *.manlint
