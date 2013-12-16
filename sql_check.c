@@ -102,6 +102,7 @@ sql_check(const char *got_username, const char *got_password,
 	const EVP_MD	*md = NULL;
 	unsigned char	got_password_digest[EVP_MAX_MD_SIZE] = "";
 	char		*got_password_digest_string = NULL;
+	int		got_password_digest_string_size = 0;
 	char		*digest_tmp = NULL;
 	unsigned int	md_len = 0, i = 0, di = 0;
 
@@ -219,8 +220,9 @@ sql_check(const char *got_username, const char *got_password,
 	else if (strcmp(cfg.pw_scheme, "cleartext") == 0) {
 		/* if the digest algorithm is cleartext, use the password as is ... */
 
-		got_password_digest_string = (char *)malloc(strlen(got_password) + 1); malloc_check(got_password_digest_string);
-		strlcpy(got_password_digest_string, got_password, strlen(got_password) + 1);
+		got_password_digest_string_size = strlen(got_password) + 1;
+		got_password_digest_string = (char *)malloc(got_password_digest_string_size); malloc_check(got_password_digest_string);
+		strlcpy(got_password_digest_string, got_password, got_password_digest_string_size);
 	} else if (strcmp(cfg.pw_scheme, "blowfish") == 0) {
 		/* ... if it is blowfish, use the crypt() function in blowfish
 		 * mode ...
