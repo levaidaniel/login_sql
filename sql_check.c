@@ -40,7 +40,6 @@
 
 
 #include <unistd.h>
-#include <ctype.h>
 
 /* OpenSSL stuff for the message digest algorithms */
 #include <openssl/evp.h>
